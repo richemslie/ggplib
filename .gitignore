@@ -1,0 +1,20 @@
+# temporary/backup files
+*~
+rulesheets/tmp*
+src/ggplib/props/*
+
+# c++
+*.d
+*.o
+*.so
+
+# python
+*.pyc
+*__pycache__/
+
+# 3rd party stuff
+bin/install
+ggp-base
+
+# log files
+*.log
