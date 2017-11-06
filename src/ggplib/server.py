@@ -27,8 +27,8 @@ GAMESERVER_TIMEOUT = 60 * 20
 
 
 class GGPServer(Resource):
-    ' a server deal withs the ggp web service like protocol.  It has only one player, which is
-      passed into each new match.'
+    ''' a server deal withs the ggp web service like protocol.  It has only one player, which is
+      passed into each new match. '''
 
     current_match = None
     player = None
