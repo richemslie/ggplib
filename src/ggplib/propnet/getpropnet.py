@@ -1,0 +1,94 @@
+import os
+import glob
+import importlib
+
+from ggplib.util import log
+from ggplib.util.runcmd import run
+
+from ggplib.propnet.factory import Propnet, create_component
+from ggplib import symbols
+
+def path_back(filename, back_count=0):
+    ' return the directory/path by going back_count times backwards.  Like cd ../../../../ '
+    path = os.path.dirname(filename)
+    for ii in range(back_count):
+        path = os.path.dirname(path)
+    return path
+
+rulesheet_dir = os.path.join(path_back(__file__, 3), "rulesheets")
+props_dir = os.path.join(path_back(__file__, 1), "props")
+
+def parse(kif_filename):
+    basename = os.path.basename(kif_filename)
+    basename = basename.replace(".", "_")
+    props_file = os.path.join(props_dir, basename + ".py")
+    for cmd in ["java -J-XX:+UseSerialGC -J-Xmx8G org.galvanise.convert.Convert %s %s" % (kif_filename, props_file),
+                "java org.galvanise.convert.Convert %s %s" % (kif_filename, props_file),
+                "SOMETHING IS BROKEN in install ..."]:
+        try:
+            # rather unsafe cache, if kif file changes underneath our feet - tough luck.
+            mod = importlib.import_module("ggplib.props." + basename)
+            break
+        except ImportError:
+            # run java ggp-base to create a propnet.  The resultant propnet will be in props_dir, which can be imported.
+            log.debug("Running: %s" % cmd)
+            run(cmd, shell=True, timeout=60)
+
+    # cleanup temp files afterwards
+    if basename.startswith("tmp"):
+        os.remove(kif_filename)
+        os.remove(props_file)
+        for f in glob.glob(os.path.join(props_dir, "__pycache__", basename) + '*.pyc'):
+            os.remove(f)
+
+    symbol_factory = symbols.SymbolFactory()
+    components = {}
+    for c in [create_component(e, symbol_factory) for e in mod.entries]:
+        if c:
+            components[c.cid] = c
+
+    return mod.roles, components, symbol_factory
+
+def get_with_filename(filename):
+    roles, components, symbol_factory = parse(filename)
+    propnet = Propnet(roles, components)
+    propnet.init()
+    propnet.verify()
+    propnet.reorder_base_propositions()
+    propnet.reorder_legals()
+    propnet.reorder_components()
+    propnet.verify()
+
+    return propnet
+
+def get_filename_for_game(game):
+    return os.path.join(rulesheet_dir, game + ".kif")
+
+def get_with_game(game):
+    return get_with_filename(get_filename_for_game(game))
+
+def get_with_gdl(gdl, name_hint=""):
+    # create a temporary file:
+
+    import uuid
+
+    name_hint += "__" + str(uuid.uuid4())
+    name_hint = name_hint.replace('-', '_')
+    name_hint = name_hint.replace('.', '_')
+
+    # ensure we have gdl symbolized
+    if isinstance(gdl, str):
+        gdl = symbols.SymbolFactory().to_symbols(gdl)
+
+    # this is very very very likely to be unique, but perhaps we should still check XXX
+    name = "tmp_%s" % name_hint
+    fn = os.path.join(os.path.join(rulesheet_dir, name + ".kif"))
+    log.debug('writing kif file %s' % fn)
+
+    # write file
+    f = open(fn, "w")
+    for l in gdl:
+        print >>f, l
+    f.close()
+
+    return get_with_filename(fn)

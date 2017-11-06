@@ -1,0 +1,191 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; author: Richard Emslie
+;; game: 3x4 traffic-lights
+;; desc: https://boardgamegeek.com/boardgame/1893/traffic-lights
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(role player_0)
+(role player_1)
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Base & Input
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(index_h 1) (index_h 2) (index_h 3)
+(index_v 1) (index_v 2) (index_v 3) (index_v 4)
+
+(<= (base (cell ?x ?y blank)) (index_h ?x) (index_v ?y))
+(<= (base (cell ?x ?y red)) (index_h ?x) (index_v ?y))
+(<= (base (cell ?x ?y yellow)) (index_h ?x) (index_v ?y))
+(<= (base (cell ?x ?y green)) (index_h ?x) (index_v ?y))
+(<= (base (control ?p)) (role ?p))
+
+(<= (input ?p (mark ?x ?y red)) (index_h ?x) (index_v ?y) (role ?p))
+(<= (input ?p (mark ?x ?y yellow)) (index_h ?x) (index_v ?y) (role ?p))
+(<= (input ?p (mark ?x ?y green)) (index_h ?x) (index_v ?y) (role ?p))
+(<= (input ?p noop) (role ?p))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Initial State
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(init (cell 1 1 blank))
+(init (cell 1 2 blank))
+(init (cell 1 3 blank))
+(init (cell 1 4 blank))
+(init (cell 2 1 blank))
+(init (cell 2 2 blank))
+(init (cell 2 3 blank))
+(init (cell 2 4 blank))
+(init (cell 3 1 blank))
+(init (cell 3 2 blank))
+(init (cell 3 3 blank))
+(init (cell 3 4 blank))
+(init (control player_0))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Transitions
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(<= (next (cell ?m ?n red))
+(does ?p (mark ?m ?n red))
+(true (cell ?m ?n blank)))
+
+(<= (next (cell ?m ?n yellow))
+(does ?p (mark ?m ?n yellow))
+(true (cell ?m ?n red)))
+
+(<= (next (cell ?m ?n green))
+(does ?p (mark ?m ?n green))
+(true (cell ?m ?n yellow)))
+
+(<= (next (cell ?m ?n ?c0))
+(does ?p (mark ?j ?k ?c1))
+(true (cell ?m ?n ?c0))
+(or (distinct ?m ?j) (distinct ?n ?k)))
+
+(<= (next (control player_0))
+(true (control player_1)))
+
+(<= (next (control player_1))
+(true (control player_0)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Legal moves
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(<= (legal ?w (mark ?x ?y red))
+(true (cell ?x ?y blank))
+(true (control ?w)))
+
+(<= (legal ?w (mark ?x ?y yellow))
+(true (cell ?x ?y red))
+(true (control ?w)))
+
+(<= (legal ?w (mark ?x ?y green))
+(true (cell ?x ?y yellow))
+(true (control ?w)))
+
+(<= (legal player_0 noop)
+(true (control player_1)))
+
+(<= (legal player_1 noop)
+(true (control player_0)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; terminals
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(<= terminal
+aline)
+
+(<= terminal
+(not open))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; goals
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(<= (goal player_0 100)
+aline
+(true (control player_1))
+)
+
+(<= (goal player_0 50)
+(not aline)
+(not open))
+
+(<= (goal player_0 0)
+aline
+(true (control player_0))
+)
+
+(<= (goal player_1 100)
+aline
+(true (control player_0))
+)
+
+(<= (goal player_1 50)
+(not aline)
+(not open))
+
+(<= (goal player_1 0)
+aline
+(true (control player_1))
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; helpers
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(<= (row ?m ?x)
+(true (cell ?m 1 ?x))
+(true (cell ?m 2 ?x))
+(true (cell ?m 3 ?x)))
+
+(<= (row ?m ?x)
+(true (cell ?m 2 ?x))
+(true (cell ?m 3 ?x))
+(true (cell ?m 4 ?x)))
+
+(<= (column ?n ?x)
+(true (cell 1 ?n ?x))
+(true (cell 2 ?n ?x))
+(true (cell 3 ?n ?x)))
+
+(<= (diagonal ?x)
+(true (cell 1 1 ?x))
+(true (cell 2 2 ?x))
+(true (cell 3 3 ?x)))
+
+(<= (diagonal ?x)
+(true (cell 1 2 ?x))
+(true (cell 2 3 ?x))
+(true (cell 3 4 ?x)))
+
+(<= (diagonal ?x)
+(true (cell 1 3 ?x))
+(true (cell 2 2 ?x))
+(true (cell 3 1 ?x)))
+
+(<= (diagonal ?x)
+(true (cell 1 4 ?x))
+(true (cell 2 3 ?x))
+(true (cell 3 2 ?x)))
+
+(<= (line ?x) (row ?m ?x))
+(<= (line ?x) (column ?m ?x))
+(<= (line ?x) (diagonal ?x))
+
+(<= aline (line red))
+(<= aline (line yellow))
+(<= aline (line green))
+
+(<= open
+(true (cell ?m ?n blank)))
+

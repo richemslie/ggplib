@@ -1,0 +1,86 @@
+from ggplib import interface as base_interface
+from interface import create_gurgeh_cpp_player
+from ggplib.player.proxy import CppPlayer, MatchInfo
+
+class GurgehPlayer(CppPlayer):
+    thread_workers = 2
+    skip_single_moves = False
+
+    max_tree_search_time = -1
+    max_number_of_nodes = 10000000
+    max_memory = 1024 * 1024 * 1024 * 20
+    max_tree_playout_iterations = 10000000
+
+    initial_ucb_constant = 0.5
+    upper_adjust_ucb_constant = 1.15
+    lower_adjust_ucb_constant = 0.25
+
+    lead_first_node_ucb_constant = 1.15
+    lead_first_node_time_pct = 0.75
+
+    select_random_move_count = 16
+    selection_use_scores = True
+
+    dump_depth = 2
+    next_time = 2.5
+
+    def meta_create_player(self):
+        role_count = len(self.sm.get_roles())
+        info = MatchInfo(self.sm)
+        if role_count > 1:
+            for i in range(5):
+                info.do_basic_depth_charge()
+
+        return create_gurgeh_cpp_player(self.sm,
+                                        self.match.our_role_index,
+
+                                        info.two_player_fixed_sum,
+                                        self.thread_workers,
+                                        self.skip_single_moves,
+
+                                        self.max_tree_search_time,
+                                        self.max_number_of_nodes,
+                                        self.max_memory,
+                                        self.max_tree_playout_iterations,
+
+                                        self.initial_ucb_constant,
+                                        self.upper_adjust_ucb_constant,
+                                        self.lower_adjust_ucb_constant,
+
+                                        self.lead_first_node_ucb_constant,
+                                        self.lead_first_node_time_pct,
+
+                                        self.select_random_move_count,
+                                        self.selection_use_scores,
+
+                                        self.dump_depth,
+                                        self.next_time)
+
+if __name__ == "__main__":
+    import sys
+    from twisted.internet import reactor
+    from twisted.web import server
+
+    from ggplib.util import log
+    from ggplib.server import GGPServer
+
+    port = int(sys.argv[1])
+
+    # if second argument, set to player name
+    try:
+        player_name = sys.argv[2]
+    except IndexError:
+        player_name = "Gurgeh"
+
+    base_interface.initialise_k273(1, log_name_base=player_name)
+    log.initialise()
+
+    player = GurgehPlayer(player_name)
+    log.info("Running gurgeh on port %d" % port)
+
+    ggp = GGPServer()
+    ggp.set_player(player)
+    site = server.Site(ggp)
+
+    reactor.listenTCP(port, site)
+    reactor.run()
