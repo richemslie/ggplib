@@ -1,5 +1,6 @@
 import os
 import glob
+import uuid
 import importlib
 
 from ggplib.util import log
@@ -18,40 +19,44 @@ def path_back(filename, back_count=0):
 rulesheet_dir = os.path.join(path_back(__file__, 3), "rulesheets")
 props_dir = os.path.join(path_back(__file__, 1), "props")
 
-def parse(kif_filename):
+def load_module(kif_filename):
+    ''' attempts to load a python module with the same filename.  If it does not exist, will run
+        java and use ggp-base to create the module. '''
+
     basename = os.path.basename(kif_filename)
     basename = basename.replace(".", "_")
     props_file = os.path.join(props_dir, basename + ".py")
-    for cmd in ["java -J-XX:+UseSerialGC -J-Xmx8G org.galvanise.convert.Convert %s %s" % (kif_filename, props_file),
-                "java org.galvanise.convert.Convert %s %s" % (kif_filename, props_file),
+    for cmd in ["java -J-XX:+UseSerialGC -J-Xmx8G propnet_convert.Convert %s %s" % (kif_filename, props_file),
+                "java propnet_convert.Convert %s %s" % (kif_filename, props_file),
                 "SOMETHING IS BROKEN in install ..."]:
         try:
             # rather unsafe cache, if kif file changes underneath our feet - tough luck.
-            mod = importlib.import_module("ggplib.props." + basename)
+            module = importlib.import_module("ggplib.props." + basename)
             break
         except ImportError:
             # run java ggp-base to create a propnet.  The resultant propnet will be in props_dir, which can be imported.
             log.debug("Running: %s" % cmd)
-            run(cmd, shell=True, timeout=60)
+            return_code, out, err = run(cmd, shell=True, timeout=60)
+            if return_code != 0:
+                log.warning("Error code: %s" % err)
+            else:
+                for l in out.splitlines():
+                    log.info("... %s" % l)
 
-    # cleanup temp files afterwards
-    if basename.startswith("tmp"):
-        os.remove(kif_filename)
-        os.remove(props_file)
-        for f in glob.glob(os.path.join(props_dir, "__pycache__", basename) + '*.pyc'):
-            os.remove(f)
+            if "SOMETHING" in cmd:
+                raise
 
+    return module
+
+def get_with_filename(filename):
+    module = load_module(filename)
     symbol_factory = symbols.SymbolFactory()
     components = {}
-    for c in [create_component(e, symbol_factory) for e in mod.entries]:
+    for c in [create_component(e, symbol_factory) for e in module.entries]:
         if c:
             components[c.cid] = c
 
-    return mod.roles, components, symbol_factory
-
-def get_with_filename(filename):
-    roles, components, symbol_factory = parse(filename)
-    propnet = Propnet(roles, components)
+    propnet = Propnet(module.roles, components)
     propnet.init()
     propnet.verify()
     propnet.reorder_base_propositions()
@@ -69,9 +74,6 @@ def get_with_game(game):
 
 def get_with_gdl(gdl, name_hint=""):
     # create a temporary file:
-
-    import uuid
-
     name_hint += "__" + str(uuid.uuid4())
     name_hint = name_hint.replace('-', '_')
     name_hint = name_hint.replace('.', '_')
@@ -91,4 +93,12 @@ def get_with_gdl(gdl, name_hint=""):
         print >>f, l
     f.close()
 
-    return get_with_filename(fn)
+    propnet = get_with_filename(fn)
+
+    # cleanup temp files afterwards
+    os.remove(kif_filename)
+    os.remove(props_file)
+    for f in glob.glob(os.path.join(props_dir, "__pycache__", basename) + '*.pyc'):
+        os.remove(f)
+
+    return propnet
