@@ -5,27 +5,27 @@ import importlib
 
 from ggplib.util import log
 from ggplib.util.runcmd import run
+from ggplib.util.util import path_back
 
 from ggplib.propnet.factory import Propnet, create_component
 from ggplib import symbols
 
-def path_back(filename, back_count=0):
-    ' return the directory/path by going back_count times backwards.  Like cd ../../../../ '
-    path = os.path.dirname(filename)
-    for ii in range(back_count):
-        path = os.path.dirname(path)
-    return path
-
 rulesheet_dir = os.path.join(path_back(__file__, 3), "rulesheets")
 props_dir = os.path.join(path_back(__file__, 1), "props")
+
+
+def kif_filename_to_propfile(kif_filename):
+    basename = os.path.basename(kif_filename)
+    basename = basename.replace(".", "_")
+    props_file = os.path.join(props_dir, basename + ".py")
+    return basename, props_file
+
 
 def load_module(kif_filename):
     ''' attempts to load a python module with the same filename.  If it does not exist, will run
         java and use ggp-base to create the module. '''
 
-    basename = os.path.basename(kif_filename)
-    basename = basename.replace(".", "_")
-    props_file = os.path.join(props_dir, basename + ".py")
+    basename, props_file = kif_filename_to_propfile(kif_filename)
     for cmd in ["java -J-XX:+UseSerialGC -J-Xmx8G propnet_convert.Convert %s %s" % (kif_filename, props_file),
                 "java propnet_convert.Convert %s %s" % (kif_filename, props_file),
                 "SOMETHING IS BROKEN in install ..."]:
@@ -48,6 +48,7 @@ def load_module(kif_filename):
 
     return module
 
+
 def get_with_filename(filename):
     module = load_module(filename)
     symbol_factory = symbols.SymbolFactory()
@@ -66,11 +67,14 @@ def get_with_filename(filename):
 
     return propnet
 
+
 def get_filename_for_game(game):
     return os.path.join(rulesheet_dir, game + ".kif")
 
+
 def get_with_game(game):
     return get_with_filename(get_filename_for_game(game))
+
 
 def get_with_gdl(gdl, name_hint=""):
     # create a temporary file:
@@ -96,7 +100,8 @@ def get_with_gdl(gdl, name_hint=""):
     propnet = get_with_filename(fn)
 
     # cleanup temp files afterwards
-    os.remove(kif_filename)
+    basename, props_file = kif_filename_to_propfile(fn)
+    os.remove(fn)
     os.remove(props_file)
     for f in glob.glob(os.path.join(props_dir, "__pycache__", basename) + '*.pyc'):
         os.remove(f)

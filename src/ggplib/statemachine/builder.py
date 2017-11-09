@@ -1,5 +1,7 @@
 import time
 import traceback
+
+from ggplib.util import log
 from ggplib.propnet.constants import OR, AND, NOT, PROPOSITION, TRANSITION, MAX_FAN_OUT_SIZE
 
 DEBUG = False
@@ -159,10 +161,8 @@ def build_goals_only_sm(propnet):
     from ggplib import interface
     propnet = propnet.dupe()
 
-    print "Building terminal/goal based state machine"
-    print "------------------------------------------"
+    log.info("Building terminal/goal based state machine")
     goal_builder = Builder(interface, verbose=False)
-    propnet.print_summary()
 
     if DEBUG:
         print "Stripping inputs"
@@ -192,8 +192,7 @@ def build_combined_state_machine(propnet):
 
     from ggplib.propnet import trace
 
-    print "Building combined based state machine"
-    print "-------------------------------------"
+    log.info("Building combined based state machine")
 
     controls = trace.get_controls(propnet)
 
@@ -253,11 +252,10 @@ def build_combined_state_machine_refactoring(propnet, control_bases, strip_goals
         success = False
 
     if not success:
-        print "Failed to run sucessful rollouts in combined statemachine"
+        log.warning("Failed to run sucessful rollouts in combined statemachine")
         return None
 
-    print "Ok played for one second in combined statemachine, did %s sucessful rollouts" % count
-    print
+    log.info("Ok played for one second in combined statemachine, did %s sucessful rollouts" % count)
 
     if strip_goals:
         goal_sm = build_goals_only_sm(propnet)

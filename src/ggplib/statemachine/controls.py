@@ -3,6 +3,7 @@ from ggplib.propnet.factory import ConstantPropagator
 from ggplib import symbols
 from ggplib.propnet import trace
 from pprint import pprint
+from ggplib.util import log
 
 DEBUG = False
 
@@ -19,7 +20,8 @@ class ControlBase:
     def constant_propagate(self, propnet):
         count = 0
         while count < len(self.bases):
-            print 'splitting network'
+            log.info("splitting network for %s " % self.bases[count])
+
             # dupe the propnet
             split_propnet = propnet.dupe()
             if self.strip_goals:

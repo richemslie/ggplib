@@ -3,7 +3,7 @@ import time
 import random
 import traceback
 
-from ggplib.util.log import Log, LogLevel
+from ggplib.util.log import Log
 
 from ggplib import interface
 from ggplib.propnet import getpropnet
@@ -12,25 +12,35 @@ from ggplib.statemachine import builder
 # module level logger
 log = Log()
 
-VERSION = "ggplib_v2_01_alpha"
+VERSION = "ggplib_v0.9999"
+
+###############################################################################
+# XXX tmp
+# def do(game_file):
+#    propnet = getpropnet.get_with_filename(game_file)
+#    sm = builder.build_standard_sm(propnet)
+# sm = builder.build_goaless_sm(propnet)
+# sm = builder.build_standard_sm(propnet)
+# import cProfile
+# cProfile.run('do(game_file)')
 
 ###############################################################################
 
-# NOTE: much faster if in c++.  Although the biggest bottleneck is the propnet.  random here is slow.
+# NOTE: will be faster if in c++.  The biggest bottleneck is the propnet, but the biggest
+# difference between code is random here is slow.
+
 
 def go(game_file, output_file, seconds_to_run, rollouts_in_c=False):
     msecs_taken = None
     rollouts = 0
     num_state_changes = 0
     error_str = None
+    all_scores = []
 
     try:
         propnet = getpropnet.get_with_filename(game_file)
         role_count = len(propnet.roles)
-
-        sm = builder.build_combined_state_machine(propnet)
-        if sm is None:
-            sm = builder.build_goaless_sm(propnet)
+        sm = builder.build_sm(propnet)
 
         if output_file is None:
             log()
@@ -46,41 +56,49 @@ def go(game_file, output_file, seconds_to_run, rollouts_in_c=False):
             joint_move = sm.get_joint_move()
             base_state = sm.new_base_state()
 
-            role_count_range = range(role_count)
-
-            end_time = time.time() + seconds_to_run
-
             # resolution is assumed to be good enough not to cheat too much here (we return
             # msecs_taken so it is all good)
-            start_time = time.time()
+            start_time = cur_time = time.time()
             end_time = start_time + seconds_to_run
-            while True:
-                cur_time = time.time()
-                if cur_time > end_time:
-                    msecs_taken = int(1000 * (cur_time - start_time))
-                    break
 
-                sm.reset()
+            while cur_time < end_time:
+                # the number of moves of the game
                 depth = 0
-                while True:
-                    if sm.is_terminal():
-                        break
 
-                    for idx in role_count_range:
-                        ls = sm.get_legal_state(idx)
+                # tells the state machine to reset everything and return to initial state
+                sm.reset()
+
+                # while the game has not ended
+                while not sm.is_terminal():
+                    # choose a random move for each role
+                    for role_index in range(role_count):
+                        ls = sm.get_legal_state(role_index)
                         choice = ls.get_legal(random.randrange(0, ls.get_count()))
-                        joint_move.set(idx, choice)
+                        joint_move.set(role_index, choice)
 
-                    # play move
+                    # play move, the base_state will be new state
                     sm.next_state(joint_move, base_state)
+
+                    # update the state machine to new state
                     sm.update_bases(base_state)
+
+                    # increment the depth
                     depth += 1
 
+                # get the scores from the statemachine
                 scores = [sm.get_goal_value(r) for r in range(role_count)]
+                all_scores.append(scores)
+
+                # stats
                 rollouts += 1
                 num_state_changes += depth
 
-    except Exception, exc:
+                # update the time
+                cur_time = time.time()
+
+            msecs_taken = int(1000 * (cur_time - start_time))
+
+    except Exception as exc:
         error_str = "Error %s" % exc
         type, value, tb = sys.exc_info()
         traceback.print_exc()
@@ -105,9 +123,12 @@ def go(game_file, output_file, seconds_to_run, rollouts_in_c=False):
     else:
         log.info("====================================================")
         log.info("performance test game %s" % game_file)
-        log.info("ran for %.3f seconds, state changes %s, rollouts %s" % ((msecs_taken / 1000.0), num_state_changes, rollouts))
+        log.info("ran for %.3f seconds, state changes %s, rollouts %s" % ((msecs_taken / 1000.0),
+                                                                          num_state_changes,
+                                                                          rollouts))
         log.info("rollouts per second: %s" % (rollouts / (msecs_taken / 1000.0)))
         log.info("====================================================")
+
 
 ###############################################################################
 
@@ -123,13 +144,13 @@ if __name__ == "__main__":
         seconds_to_run = 10
 
     if debug:
-        print "GAME_FILE", game_file
-        print "OUTPUT_FILE", output_file
-        print "SECONDS_TO_RUN", seconds_to_run
+        print("GAME_FILE", game_file)
+        print("OUTPUT_FILE", output_file)
+        print("SECONDS_TO_RUN", seconds_to_run)
 
-    from ggplib import interface
-    import ggplib.util.log
     interface.initialise_k273(1, log_name_base="perf_test")
+
+    import ggplib.util.log
     ggplib.util.log.initialise()
 
     # two versions, python or c++

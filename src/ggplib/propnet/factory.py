@@ -1,19 +1,27 @@
-import time
-import random
+'''
+TODO
+* add tests
+* maybe come up with a diagram as to what it actually does
+* clean up - is an absolute mess
+* remame roleinfo.role' should be 'roleinfo.name'
+'''
 
 from ggplib.propnet.constants import AND, OR, NOT, PROPOSITION, TRANSITION, CONSTANT, UNKNOWN, MAX_FAN_OUT_SIZE
 from ggplib import symbols
+from ggplib.util import log
 
-# XXX 'roleinfo.role' should be 'roleinfo.name'
 DEBUG = False
 
 ###############################################################################
 # basic type hierarchy (inheritance here doesn't actually do very much)
+###############################################################################
+
 
 class ComponentBase(object):
     component_type = UNKNOWN
     increment_multiplier = 1
     topological_order = 0
+
     def __init__(self, cid, count, inputs, outputs):
         self.cid = cid
         self.inputs = inputs
@@ -25,29 +33,34 @@ class ComponentBase(object):
 
     @property
     def typename(self):
-        d = { AND : "And",
-              OR : "Or",
-              NOT : "Not",
-              PROPOSITION : "Proposition",
-              TRANSITION : "Transition",
-              CONSTANT : "Constant",
-              UNKNOWN : "Unknown" }
+        d = {AND : "And",
+             OR : "Or",
+             NOT : "Not",
+             PROPOSITION : "Proposition",
+             TRANSITION : "Transition",
+             CONSTANT : "Constant",
+             UNKNOWN : "Unknown"}
         return d[self.component_type]
 
     def __repr__(self):
         return "%s(%s, %s, %s, %s)" % (self.typename, self.cid, self.count, len(self.inputs), len(self.outputs))
 
+
 class Proposition(ComponentBase):
     component_type = PROPOSITION
+
     def __init__(self, cid, count, inputs, outputs, meta):
         ComponentBase.__init__(self, cid, count, inputs, outputs)
         self.meta = meta
 
     def __repr__(self):
-        return "%s(%s, %s, %s, %s, %s)" % (self.typename, self.cid, self.count, self.meta.gdl, len(self.inputs), len(self.outputs))
+        return "%s(%s, %s, %s, %s, %s)" % (self.typename, self.cid, self.count,
+                                           self.meta.gdl, len(self.inputs), len(self.outputs))
+
 
 class Or(ComponentBase):
     component_type = OR
+
 
 class And(ComponentBase):
     component_type = AND
@@ -57,9 +70,11 @@ class And(ComponentBase):
         self.required_count_true = len(self.inputs)
         self.required_count_false = self.required_count_true - 1
 
+
 class Not(ComponentBase):
     component_type = NOT
     increment_multiplier = -1
+
 
 class Transition(ComponentBase):
     component_type = TRANSITION
@@ -76,10 +91,12 @@ class Transition(ComponentBase):
     def __repr__(self):
         return "%s(%s, %s, %s, %s)" % (self.typename, self.cid, self.count, len(self.inputs), self.fish_gdl())
 
+
 class Constant(ComponentBase):
     component_type = CONSTANT
 
 ###############################################################################
+
 
 class MetaProposition:
     is_base = False
@@ -114,6 +131,7 @@ class MetaProposition:
                 s += "%s = %s" % (t, getattr(self, t))
         return s
 
+
 def create_component(args, symbol_factory):
     if len(args) == 5:
         cid, count, t, inputs, outputs = args
@@ -141,7 +159,7 @@ def create_component(args, symbol_factory):
         cid, count, t, inputs, outputs, prop_t = args[0:6]
 
         assert len(inputs) <= 1
-        #assert t == PROPOSITION
+        # assert t == PROPOSITION
 
         if prop_t == 'base':
             mp.is_base = True
@@ -186,9 +204,10 @@ def create_component(args, symbol_factory):
         return Proposition(cid, count, inputs, outputs, mp)
 
     else:
-        assert False, "WTF is this component %s"  % (args,)
+        assert False, "WTF is this component %s" % (args,)
 
 ###############################################################################
+
 
 class RoleInfo:
     def __init__(self, role, idx):
@@ -199,6 +218,7 @@ class RoleInfo:
         self.inputs = []
         self.legals = []
         self.goals = []
+
 
 class Propnet:
     # verify is slow, and always passes unless there is a bug... so disabling for when not testing
@@ -225,59 +245,54 @@ class Propnet:
         return legals
 
     def init(self):
-        if not DEBUG:
-            print "Building propnet..."
+        log.debug("Building propnet... @Propnet.init()")
 
         if DEBUG:
-            print "* recording"
+            print("* recording")
         self.record()
         if DEBUG:
             self.print_summary()
 
         if DEBUG:
-            print "* unlink transitions"
+            print("* unlink transitions")
         self.unlink_transitions()
 
         if DEBUG:
-            print "* remove passthrough propositions"
+            print("* remove passthrough propositions")
         self.unlink_passthrough_components(do_list=(PROPOSITION,))
         if DEBUG:
             self.print_summary()
 
         if DEBUG:
-            print "* optmizing"
-        self.optimize()
+            print("* optmizing")
+        self.optimize(once=True)
         if DEBUG:
             self.print_summary()
 
         if DEBUG:
-            print "* ensure legal endpoints"
+            print("* ensure legal endpoints")
         self.ensure_legal_endpoints()
 
-        self.optimize()
         if DEBUG:
-            self.print_summary()
-
-        if DEBUG:
-            print "* getting initial state"
+            print("* getting initial state")
         self.initial_state = [int(s) for s in self.do_initial_state()]
 
         if DEBUG:
-            print "initial", self.to_gdl(self.initial_state)
+            print("initial", self.to_gdl(self.initial_state))
             self.print_summary()
 
         if DEBUG:
-            print "* constant propagate stuff not needed anymore"
+            print("* constant propagate stuff not needed anymore")
         cp = ConstantPropagator(self)
         for c in self.components.values():
-           if isinstance(c, Constant):
-               if DEBUG:
-                   print "propagating", c
+            if isinstance(c, Constant):
+                if DEBUG:
+                    print("propagating", c)
 
-               cp.constant_propagate(c, c.count)
+                cp.constant_propagate(c, c.count)
 
         if DEBUG:
-            print "* propagating", self.initial_proposition
+            print("* propagating", self.initial_proposition)
         cp.constant_propagate(self.initial_proposition, self.initial_proposition.count)
 
         # complete remove initial_proposition
@@ -285,23 +300,23 @@ class Propnet:
         self.initial_proposition = None
 
         if DEBUG:
-            print "* optimizing again"
-        self.optimize()
+            print("* optimizing again")
+        self.optimize(once=True)
         if DEBUG:
             self.print_summary()
 
         if DEBUG:
-            print "* weird dangling"
+            print("* weird dangling")
         danglers = self.find_weird_dangling_stuff()
         for d in danglers:
             if DEBUG:
-                print "Constant propagating dangler", d
+                print("Constant propagating dangler", d)
             cp.constant_propagate(d, d.count == d.required_count_true)
 
         self.input_propositions, old_input_propositions = [], self.input_propositions
         for ip in old_input_propositions:
             if ip.meta.the_legal is None:
-                #print "The following input does not have a corresponding legal", ip
+                # print("The following input does not have a corresponding legal", ip)
                 cp.constant_propagate(ip, False)
                 self.components.pop(ip.cid)
                 continue
@@ -314,23 +329,23 @@ class Propnet:
                     if i.component_type == PROPOSITION:
                         meta = str(i.meta)
                     if i.component_type == TRANSITION:
-                        #print "+++ note transition may have side affect of unsetting initial state"
+                        # print("+++ note transition may have side affect of unsetting initial state")
                         pass
                     else:
                         # this is perfectly valid
                         if i.meta.is_legal and i.count == 0:
                             if DEBUG:
-                                print "XXX This needs to be removed:", i, meta
+                                print("XXX This needs to be removed:", i, meta)
 
         self.breakup_large_inputs()
         for c in self.components.values():
             assert len(c.inputs) <= MAX_FAN_OUT_SIZE
 
         if DEBUG:
-            print "* remove useless bases:",
+            print("* remove useless bases:",)
         removed = self.remove_useless_bases()
         if DEBUG:
-            print removed
+            print(removed)
         if removed:
             self.optimize()
             if DEBUG:
@@ -340,7 +355,7 @@ class Propnet:
         self.do_backpropagate_on([c for c in self.components.values() if not c.outputs and c.inputs])
 
         if DEBUG:
-            print "* topological_ordering"
+            print("* topological_ordering")
         self.topological_ordering()
         self.verify()
 
@@ -375,8 +390,8 @@ class Propnet:
             if not roots:
                 # then we can constant propagate its input
                 b = self.base_propositions[idx]
-                print "unsettable...", b, t
-                #self.constant_propagate(b, XX)
+                print("unsettable...", b, t)
+                # self.constant_propagate(b, XX)
 
         for r in self.role_infos:
             for l in r.legals:
@@ -384,12 +399,13 @@ class Propnet:
                 if not roots:
                     # then we can constant propagate its input
                     b = self.base_propositions[idx]
-                    print "unsettable...", b, t
-                    #self.constant_propagate(b, XX)
+                    print("unsettable...", b, t)
+                    # self.constant_propagate(b, XX)
 
     def determine_unsetables(self, c):
         seen_root = set()
         seen = set()
+
         def go(x):
             for i in x.inputs:
                 if i in seen:
@@ -412,26 +428,44 @@ class Propnet:
         for c in self.components.values():
             if c.component_type == OR:
                 assert c.cid not in new_component_map
-                new_component_map[c.cid] = Or(c.cid, c.count, [i.cid for i in c.inputs], [o.cid for o in c.outputs])
+                new_component_map[c.cid] = Or(c.cid, c.count,
+                                              [i.cid for i in c.inputs],
+                                              [o.cid for o in c.outputs])
             elif c.component_type == AND:
                 assert c.cid not in new_component_map
-                new_component_map[c.cid] = And(c.cid, c.count, [i.cid for i in c.inputs], [o.cid for o in c.outputs])
+                new_component_map[c.cid] = And(c.cid, c.count,
+                                               [i.cid for i in c.inputs],
+                                               [o.cid for o in c.outputs])
             elif c.component_type == NOT:
                 assert c.cid not in new_component_map
-                new_component_map[c.cid] = Not(c.cid, c.count, [i.cid for i in c.inputs], [o.cid for o in c.outputs])
+                new_component_map[c.cid] = Not(c.cid, c.count,
+                                               [i.cid for i in c.inputs],
+                                               [o.cid for o in c.outputs])
             elif c.component_type == TRANSITION:
                 assert c.cid not in new_component_map
-                new_component_map[c.cid] = Transition(c.cid, c.count, [i.cid for i in c.inputs], [o.cid for o in c.outputs])
+                new_component_map[c.cid] = Transition(c.cid, c.count,
+                                                      [i.cid for i in c.inputs],
+                                                      [o.cid for o in c.outputs])
 
             else:
                 assert c.component_type == PROPOSITION
                 meta = MetaProposition()
-                for attr in "is_base is_input is_legal is_goal is_init is_terminal gdl move goal_value role".split():
-                    setattr(meta, attr, getattr(c.meta, attr))
-                    meta.legals_input = None
+                meta.is_base = c.meta.is_base
+                meta.is_input = c.meta.is_input
+                meta.is_legal = c.meta.is_legal
+                meta.is_goal = c.meta.is_goal
+                meta.is_init = c.meta.is_init
+                meta.is_terminal = c.meta.is_terminal
+                meta.gdl = c.meta.gdl
+                meta.move = c.meta.move
+                meta.goal_value = c.meta.goal_value
+                meta.role = c.meta.role
+                meta.legals_input = None
 
                 assert c.cid not in new_component_map
-                new_component_map[c.cid] = Proposition(c.cid, c.count, [i.cid for i in c.inputs], [o.cid for o in c.outputs], meta)
+                new_component_map[c.cid] = Proposition(c.cid, c.count,
+                                                       [i.cid for i in c.inputs],
+                                                       [o.cid for o in c.outputs], meta)
 
         duped_propnet = Propnet(self.roles[:], new_component_map)
         for c in duped_propnet.components.values():
@@ -454,13 +488,14 @@ class Propnet:
 
                 assert l.meta.legals_input, "legal %s, does not have input" % l
 
-            duped_propnet.goal_propositions = {}
-            for k, v in self.goal_propositions.items():
-                try:
-                    duped_propnet.goal_propositions[k] = [new_component_map[p.cid] for p in v]
-                except Exception, exc:
-                    duped_propnet.goal_propositions[k] = []
-                    print "TODO goal_propositions missing...XXX something sensible here", exc
+        duped_propnet.goal_propositions = {}
+        for k, v in self.goal_propositions.items():
+            try:
+                duped_propnet.goal_propositions[k] = [new_component_map[p.cid] for p in v]
+
+            except Exception as exc:
+                duped_propnet.goal_propositions[k] = []
+                print("TODO goal_propositions missing...XXX something sensible here", exc)
 
         duped_propnet.transitions = [new_component_map[t.cid] for t in self.transitions]
         for b, t in zip(duped_propnet.base_propositions, duped_propnet.transitions):
@@ -476,10 +511,10 @@ class Propnet:
         duped_propnet.initial_state = self.get_initial_state()
 
         duped_propnet.role_infos = [RoleInfo(r, idx) for idx, r in enumerate(self.roles)]
-        for role_info in duped_propnet.role_infos:
-            for c in duped_propnet.components.values():
-                if c.component_type == PROPOSITION:
-                    p = c
+        for c in duped_propnet.components.values():
+            if c.component_type == PROPOSITION:
+                p = c
+                for role_info in duped_propnet.role_infos:
                     if p.meta.role != role_info.role:
                         continue
 
@@ -491,15 +526,14 @@ class Propnet:
                                 role_info.legals.append(p)
                                 role_info.inputs.append(ip)
 
-                    if p.meta.is_goal:
+                    elif p.meta.is_goal:
                         assert p.meta.role in self.roles
-                        if p.meta.role != role_info.role:
-                            continue
 
                         # santity check that doesnt go anywhere
                         self.goal_propositions.setdefault(p.meta.role, []).append(p)
                         role_info.goals.append(p)
 
+        # XXX this is slow, and not sure why we are doing it?
         duped_propnet.topological_ordering()
         return duped_propnet
 
@@ -507,11 +541,10 @@ class Propnet:
         cp = ConstantPropagator(self)
         for i in self.all_inbound(do_bases=False):
             cp.constant_propagate(i, 0)
+
         if DEBUG:
             cp.report()
         self.optimize()
-        if DEBUG:
-            self.print_summary()
 
     def get_initial_state(self):
         return self.initial_state[:]
@@ -585,7 +618,7 @@ class Propnet:
                             break
 
                     if not p.meta.legals_input:
-                        print "WARNING legal %s, does not have input" % p
+                        print("WARNING legal %s, does not have input" % p)
 
                 if p.meta.is_goal:
                     assert p.meta.role in self.roles
@@ -609,7 +642,7 @@ class Propnet:
 
         assert set(all_transitions) == set(self.transitions)
         if DEBUG:
-            print 'DONE recording operations'
+            print('DONE recording operations')
 
     def ensure_valid(self):
         self.optimize()
@@ -654,7 +687,7 @@ class Propnet:
                     total += 1
         if total:
             if DEBUG:
-                print "ensure_legal_endpoints", total
+                print("ensure_legal_endpoints", total)
 
     def breakup_large_inputs(self):
         did_something = True
@@ -710,7 +743,7 @@ class Propnet:
             t.outputs = []
             t.base_proposition = the_output
 
-    def optimize(self, all_features=False, verbose=False):
+    def optimize(self, once=False, all_features=False, verbose=False):
 
         while True:
             total = 0
@@ -736,7 +769,7 @@ class Propnet:
                 total += self.eliminate_expr_to_expr(AND)
                 total += self.eliminate_expr_to_expr(OR)
 
-            if total == 0:
+            if once or total == 0:
                 break
 
             if verbose:
@@ -802,16 +835,16 @@ class Propnet:
 
     def dump_dependencies(self):
         if DEBUG:
-            print "Dumping dependencies"
-            print "===================="
+            print("Dumping dependencies")
+            print("====================")
         cb = BackPropagator(self, trace=False)
 
         for r in self.role_infos:
             for l in r.legals:
                 cb.dependencies(l)
 
-        #for t in self.transitions:
-        #    cb.dependencies(t)
+        # for t in self.transitions:
+        #     cb.dependencies(t)
 
     def print_summary(self):
         # everything
@@ -838,7 +871,6 @@ class Propnet:
         links = sum(len(c.outputs) for c in self.components.values())
         average_fan_out = links / float(total_components - total_outputs)
 
-
         args2 = (total_propositions,
                  total_ands,
                  total_ors,
@@ -846,9 +878,8 @@ class Propnet:
                  links,
                  average_fan_out)
 
-        print "SUMMARY: total:%s  bases:%d ins:%s inputs:%d outputs:%d/%d trans:%d const:%d" % args1
-        print "         props: %d ands:%d ors:%d nots:%d links:%d av_fan_out:%.2f" % args2
-
+        log.debug("SUMMARY: total:%s  bases:%d ins:%s inputs:%d outputs:%d/%d trans:%d const:%d" % args1)
+        log.debug("         props: %d ands:%d ors:%d nots:%d links:%d av_fan_out:%.2f" % args2)
 
     def all_inbound(self, do_bases=True, do_inputs=True):
         result = set()
@@ -860,7 +891,6 @@ class Propnet:
         # add inputs (inbound)
         if do_inputs:
             result.update(self.input_propositions)
-
 
         if self.initial_proposition:
             result.add(self.initial_proposition)
@@ -912,7 +942,7 @@ class Propnet:
                     o.inputs.remove(c)
         if total:
             if DEBUG:
-                print "removed %d duplicate links in sanitize_input_outputs()" % total
+                print("removed %d duplicate links in sanitize_input_outputs()" % total)
         return total
 
     def unlink_deadends(self, keep, verbose=False):
@@ -934,29 +964,32 @@ class Propnet:
             for a_input in c.inputs:
                 a_input.outputs.remove(c)
                 if not a_input.outputs:
-                    #print "adding", a_input
+                    # print("adding", a_input)
                     candidates.append(a_input)
 
             if verbose:
-                print 'unlinked', c
+                print('unlinked', c)
             self.components.pop(c.cid)
             total += 1
         if total:
             if DEBUG:
-                print "total %d components removed via unlink_deadends" % total
+                print("total %d components removed via unlink_deadends" % total)
         return total
 
     def subexpr_elimination(self):
         # IMPORTANT, type ordering (XXX use name rather than 3)
         inputs_to_node = {}
         total = 0
+
+        # XXX large part of slowness in this is that removing inputs/ouputs is expensive with
+        # python list
         for c in self.components.values():
             t = c.component_type
             if t in (NOT, AND, OR):
-                inputs_as_list = [i.cid for i in c.inputs]
-                if not inputs_as_list:
+                if not c.inputs:
                     continue
 
+                inputs_as_list = [i.cid for i in c.inputs]
                 inputs_as_list.sort()
                 key = tuple(inputs_as_list)
 
@@ -985,7 +1018,7 @@ class Propnet:
 
         if total:
             if DEBUG:
-                print "removed %d components via subexpr_elimination" % total
+                print("removed %d components via subexpr_elimination" % total)
         return total
 
     def unlink_passthrough_components(self, do_list=(AND, OR, PROPOSITION)):
@@ -1003,7 +1036,7 @@ class Propnet:
                 the_input = c.inputs[0]
 
                 # this must die
-                #print c, the_input, " -> ", len(c.outputs)
+                # print(c, the_input, " -> ", len(c.outputs))
                 for the_output in c.outputs:
                     replace_count = 0
 
@@ -1034,7 +1067,7 @@ class Propnet:
 
         if total:
             if DEBUG:
-                print 'unlinked passthrough components', total
+                print('unlinked passthrough components', total)
         return total
 
     def eliminate_expr_to_expr(self, do_type):
@@ -1050,9 +1083,9 @@ class Propnet:
 
                 # ZZZXXX this value seems to make a big difference
                 # wihtout speedChess is 10% faster... huh
-                #if len(c.outputs) < len(c.inputs):
+                # if len(c.outputs) < len(c.inputs):
                 #    continue
-                #if len(c.outputs) > 5 or len(c.outputs) > len(c.inputs):
+                # if len(c.outputs) > 5 or len(c.outputs) > len(c.inputs):
                 #    continue
 
                 # I don't know how much this helps when the size is > 1, and it is also causing crashes... so meh...
@@ -1083,7 +1116,7 @@ class Propnet:
                     # and remove it
                     self.components.pop(c.cid)
                     total += 1
-                    #print 'AFTER', c.inputs, c.outputs
+                    # print('AFTER', c.inputs, c.outputs)
 
         if do_type == AND:
             s = "ANDs"
@@ -1093,7 +1126,7 @@ class Propnet:
             s = "NOTs"
         if DEBUG:
             if total:
-                print 'number of eliminated %s : %s' % (s, total)
+                print('number of eliminated %s : %s' % (s, total))
         return total
 
     def eliminate_nots(self):
@@ -1117,7 +1150,7 @@ class Propnet:
                     c.increment_multiplier *= -1
                     self.components.pop(o.cid)
                     if DEBUG:
-                        print "eliminate not", o
+                        print("eliminate not", o)
 
     def do_x_over_y(self, X=AND, Y=OR):
         total = 0
@@ -1143,10 +1176,10 @@ class Propnet:
                     for i in look_for_inputs:
                         if len(i.outputs) != 1:
                             if DEBUG:
-                                print 'skipping in do_x_over_y since > 1 outputs', i
+                                print('skipping in do_x_over_y since > 1 outputs', i)
                             continue
 
-                    #print "XXXXXXXXXXXXXX", c, common_inputs
+                    # print("XXXXXXXXXXXXXX", c, common_inputs)
 
                     # remove commons from the ands (only if the and has one output, being c)
                     for common in common_inputs:
@@ -1155,7 +1188,7 @@ class Propnet:
                         # only do this if the 'and' gate here has one output
                         for a in look_for_inputs:
                             assert len(a.outputs) == 1
-                            #print common, 'removing link to and', a
+                            # print(common, 'removing link to and', a)
                             common.outputs.remove(a)
                             a.inputs.remove(common)
 
@@ -1170,7 +1203,6 @@ class Propnet:
                     else:
                         assert False, "Should never get here"
 
-
                     new_component = clz(self.new_component_id(), -1, list(common_inputs) + [c], new_outputs)
                     self.components[new_component.cid] = new_component
 
@@ -1178,7 +1210,7 @@ class Propnet:
                     for i in new_component.inputs:
                         # nothing to remove, since c removed all outputs, and all common are dangling
                         i.outputs.append(new_component)
-                        #print i, 'addin to', new_component
+                        # print(i, 'addin to', new_component)
 
                     # patch up component outputs
                     for o in new_component.outputs:
@@ -1187,14 +1219,13 @@ class Propnet:
 
                     total += 1
 
-        d = {
-            AND : "AND",
-            OR : "OR",
-            NOT : "NOT",
-            }
+        d = {AND : "AND",
+             OR : "OR",
+             NOT : "NOT"}
+
         if DEBUG:
             if total:
-                print "moved %s %s over %s" % (total, d[X], d[Y])
+                print("moved %s %s over %s" % (total, d[X], d[Y]))
         return total
 
     def new_component_id(self):
@@ -1278,7 +1309,7 @@ class Propnet:
 
                 seen_all_inputs = True
                 for i in c.inputs:
-                    if not i in seen:
+                    if i not in seen:
                         seen_all_inputs = False
                         break
 
@@ -1299,7 +1330,7 @@ class Propnet:
                 if len(control_flow_leftover) == 0:
                     break
                 if DEBUG:
-                    print "Loops???? WTF..  Ok add them all in, and leave everything else leftover"
+                    print("Loops???? WTF..  Ok add them all in, and leave everything else leftover")
                 level = control_flow_leftover
                 for c in control_flow_leftover:
                     components.remove(c)
@@ -1328,8 +1359,8 @@ class Propnet:
 
         self.levels.append(level)
 
-
-        # if goals are leftover, add them.  (This is for very strange gdl created for testing gdl players from standford)
+        # if goals are leftover, add them.  (This is for very strange gdl created for testing gdl
+        # players from standford)
         goal_level = []
         for c in components:
             if c.component_type == PROPOSITION and c.meta.is_goal:
@@ -1342,7 +1373,8 @@ class Propnet:
 
         if components:
             if DEBUG:
-                print "LEFTOVER", len(components)
+                print("LEFTOVER", len(components))
+
             def find_root_input(x, roots):
                 if not x.inputs:
                     if x not in seen:
@@ -1362,14 +1394,15 @@ class Propnet:
                     continue
 
                 if DEBUG:
-                    print c, d, c.inputs, c.outputs
+                    print(c, d, c.inputs, c.outputs)
 
             if DEBUG:
-                print "After removing empty loops, LEFTOVER", len(components)
+                print("After removing empty loops, LEFTOVER", len(components))
 
             if components:
                 if DEBUG:
-                    print "important: this doesn't mean not reachable from set of inputs, it means that there is at least one input up the line missing"
+                    print("important: this doesn't mean not reachable from set of inputs, it means",
+                          "that there is at least one input up the line missing")
                 assert False, "figure out wtf is going on"
 
         for e, l in enumerate(self.levels):
@@ -1381,7 +1414,7 @@ class Propnet:
         if self.disable_verify:
             return
         if DEBUG:
-            print "verifying"
+            print("verifying")
         for c in self.components.values():
             # if c.component_type in (AND, OR):
             #     assert 0 <= c.count <= len(c.inputs)
@@ -1411,19 +1444,20 @@ class Propnet:
 
         cb = BackPropagator(self, trace=False, compare=True)
         for c in self.components.values():
-           if (not c.outputs and c.inputs):
-               try:
-                   cb.back_propagate(c, set())
-               except:
-                   cb = BackPropagator(self, trace=True, compare=True)
-                   cb.back_propagate(c, set())
+            if (not c.outputs and c.inputs):
+                try:
+                    cb.back_propagate(c, set())
+                except:
+                    cb = BackPropagator(self, trace=True, compare=True)
+                    cb.back_propagate(c, set())
 
         if DEBUG:
-            print "verified"
+            print("verified")
 
     def reorder_legals(self):
         if DEBUG:
-            print "SORTING LEGALS"
+            print("SORTING LEGALS")
+
         def gdl_sort(props):
             groups = {}
 
@@ -1456,16 +1490,16 @@ class Propnet:
             new_props.reverse()
             return new_props
 
-        #print "LEN self.input_propositions", len(self.input_propositions)
+        # print("LEN self.input_propositions", len(self.input_propositions))
         new_input_propositions = []
         set_input_propositions_count = 0
         for role_info in self.role_infos:
             new_legals = gdl_sort(role_info.legals)
             assert len(role_info.legals) == len(new_legals)
 
-            #print "pprint sorted legals:"
-            #from pprint import pprint
-            #pprint(new_legals)
+            # print("pprint(sorted legals:")
+            # from pprint import pprint
+            # pprint(new_legals)
 
             new_inputs = []
             for l in new_legals:
@@ -1473,12 +1507,12 @@ class Propnet:
                 assert l.meta.legals_input is not None
                 new_input_propositions.append(l.meta.legals_input)
 
-            #XXXXX
+            # XXXXX
             # update
             role_info.legals = new_legals
 
-            # this is a hack to fix another hack.  Seems legals can purged, but inputs must always remain (this is due to how cpp propagate works).
-            # so only update new_inputs, if same
+            # this is a hack to fix another hack.  Seems legals can purged, but inputs must always
+            # remain (this is due to how cpp propagate works).  so only update new_inputs, if same
             if len(role_info.legals) != 0:
                 assert len(role_info.inputs) == len(new_inputs)
                 role_info.inputs = new_inputs
@@ -1487,7 +1521,7 @@ class Propnet:
         if set_input_propositions_count:
             assert set_input_propositions_count == len(self.role_infos)
             self.input_propositions = new_input_propositions
-            #print "LEN X2 self.input_propositions", len(self.input_propositions)
+            # print("LEN X2 self.input_propositions", len(self.input_propositions))
 
     def reorder_base_propositions(self):
         new_bases = []
@@ -1525,8 +1559,8 @@ class Propnet:
             new_initial_state.append(self.initial_state[ii])
             new_transitions.append(self.transitions[ii])
 
-        #print self.initial_state, new_initial_state
-        #print self.to_gdl(self.initial_state)
+        # print(self.initial_state, new_initial_state)
+        # print(self.to_gdl(self.initial_state))
 
         self.base_propositions = new_bases
         self.initial_state = new_initial_state
@@ -1545,7 +1579,7 @@ class Propnet:
             component_id[0] += 1
             components.append(c)
             todo_components.remove(c)
-            #print c
+            # print(c
 
         for l in self.base_propositions:
             do(l)
@@ -1580,8 +1614,9 @@ class Propnet:
         assert len(todo_components) == 0
 
         if DEBUG:
-            print "REORDERED COMPONENTS"
+            print("REORDERED COMPONENTS")
         self.already_reordered = True
+
 
 class Trace:
     def __init__(self, propnet):
@@ -1596,7 +1631,7 @@ class Trace:
         if component in seen:
             assert component.count != -1, "in seen (%s) but no value set" % seen
             if DEBUG:
-                print "    " * depth, "**", component.count >= component.required_count_true, component
+                print("    " * depth, "**", component.count >= component.required_count_true, component)
 
         seen.add(component)
 
@@ -1611,16 +1646,18 @@ class Trace:
         else:
             assert component.increment_multiplier == 1
         if DEBUG:
-            print "    " * depth, res, component
+            print("    " * depth, res, component)
+
 
 class BackPropagator:
     ' simple back propagator, but not a state machine '
     def __init__(self, propnet, trace=True, compare=False):
         self.propnet = propnet
-        # print the back propagation as it happens
+        # print(the back propagation as it happens
         self.trace = trace
 
-        # compares what it computes in the component versus what is existing (can be used to vigourously integrity check)
+        # compares what it computes in the component versus what is existing (can be used to
+        # vigourously integrity check)
         self.compare = compare
 
         self.dependent_inputs = None
@@ -1633,22 +1670,22 @@ class BackPropagator:
         self.back_propagate(component, seen)
         self.dependent_inputs = None
         if DEBUG:
-            print "dependencies for", component
+            print("dependencies for", component)
             for i in res:
-                print "    ", i
+                print("    ", i)
 
     def back_propagate(self, component, seen, depth=0):
         ' the interface '
         if component in seen:
             if component.count == -1:
                 if DEBUG:
-                    print "WARNING - loop detected, setting value component to zero value"
-                #component.count = 0
-                #return
+                    print("WARNING - loop detected, setting value component to zero value")
+                # component.count = 0
+                # return
 
             assert component.count != -1, "in seen (%s) but no value set" % seen
             if self.trace:
-                print "    " * depth, "**", component.count, component
+                print("    " * depth, "**", component.count, component)
 
             res = component.count >= component.required_count_true
             if component.component_type == NOT:
@@ -1664,7 +1701,8 @@ class BackPropagator:
             AND : self.do_back_propagate_and,
             NOT : self.do_back_propagate_not,
             TRANSITION : self.do_back_propagate_transition,
-            CONSTANT : self.do_back_propagate_constant }
+            CONSTANT : self.do_back_propagate_constant}
+
         method = methods[component.component_type]
 
         # remember count is the number of inputs that are true
@@ -1683,7 +1721,7 @@ class BackPropagator:
             assert component.increment_multiplier == 1
 
         if self.trace:
-            print "    " * depth, res, component
+            print("    " * depth, res, component)
 
         return res
 
@@ -1730,6 +1768,7 @@ class BackPropagator:
 
 ###############################################################################
 
+
 class ForwardPropagator:
     ' simple forward propagator, but not a state machine '
 
@@ -1755,6 +1794,7 @@ class ForwardPropagator:
 
 ###############################################################################
 
+
 class ConstantPropagator:
     def __init__(self, propnet, verbose=False):
         self.propnet = propnet
@@ -1764,15 +1804,18 @@ class ConstantPropagator:
         self.total_propagations = 0
 
     def report(self):
-        print 'constant propagated %d components' % self.total_propagations
+        print('constant propagated %d components' % self.total_propagations)
 
     def constant_propagate(self, component, count):
-        ' first of all before calling this, must forward propagate things.  This algorithm will expect the forwaring values to be correct. '
+        ''' first of all before calling this, must forward propagate things.  This algorithm will
+            expect the forwaring values to be correct. '''
+
         # a set of deadends we need to deal with once fully propagated
         self.fwd_prop.propagate(component, count)
 
         if self.verbose:
-            print 'cp--> constant_propagate', component, bool(component.count)
+            print('cp--> constant_propagate', component, bool(component.coun))
+
         total = self.do_constant_propagate(component, count, 1)
         self.total_propagations += total
 
@@ -1782,18 +1825,20 @@ class ConstantPropagator:
 
             # can only constant a propagate a legal of 0.
             if legal.count != 0:
-                print "WARNING: would of constant propagated an input on", component
+                log.warning("would of constant propagated an input on %s" % component)
                 continue
 
             self.fwd_prop.propagate(component, legal.count)
+
             if self.verbose:
-                print 'cp--> constant_propagate input', component, bool(legal.count)
+                print('cp--> constant_propagate input', component, bool(legal.count))
+
             total = self.do_constant_propagate(component, legal.count, 1)
             self.total_propagations += total
 
         if self.verbose:
             print
-            print 'constant propagated %d components' % total
+            print('constant propagated %d components' % total)
 
     def do_constant_propagate(self, component, count, depth):
         assert len(component.inputs) == 0
@@ -1810,15 +1855,14 @@ class ConstantPropagator:
         while outputs:
             o = outputs.pop()
             if self.verbose:
-                print depth * '    ' + 'cp-->', o, count
+                print(depth * '    ' + 'cp-->', o, count)
 
             # well if some constant propagation done earlier on an earlier popped output, o' - that o' might not be
             # part of the outputs at all anymore.  If that is so we can skip it entirely.  remove from the input.  This
             # might happen for or/and when they got wind of the idea that they were now forced true/false regardless of
             # what the other inputs were - and unhooked itself.  See LLL.
 
-
-            #assert component in o.inputs
+            # assert component in o.inputs
             if component not in o.inputs:
                 assert o not in component.outputs, "Cannot be in the outputs anymore - see above comment"
                 continue
@@ -1838,7 +1882,7 @@ class ConstantPropagator:
 
                         # issue: i may be a new deadend?
                         if self.verbose and not i.outputs:
-                            print i, "has no outputs, a new deadend"
+                            print(i, "has no outputs, a new deadend")
 
                     o.inputs = []
                     total += self.do_constant_propagate(o, 1, depth + 1)
@@ -1848,11 +1892,11 @@ class ConstantPropagator:
                     # o.required_count_true - will be correct
                     # o.required_count_false - will be correct
 
-                    # len(o.inputs) == 1 is a special case, we can rewire output of the remaining input, so that we don't need this
-                    # at all anymore done later as separate pass
+                    # len(o.inputs) == 1 is a special case, we can rewire output of the remaining
+                    # input, so that we don't need this at all anymore done later as separate pass
 
                     if len(o.inputs) == 0:
-                        #assert o.count == 0
+                        # assert o.count == 0
                         total += self.do_constant_propagate(o, 0, depth + 1)
 
             elif o.component_type == AND:
@@ -1861,13 +1905,16 @@ class ConstantPropagator:
                     o.required_count_true -= 1
                     o.required_count_false -= 1
 
-                    # len(o.inputs) == 1 is a special case, we can rewire output of the remaining input, so that we don't need this
-                    # at all anymore done later as separate pass
+                    # len(o.inputs) == 1 is a special case, we can rewire output of the remaining
+                    # input, so that we don't need this at all anymore done later as separate pass
 
                     if len(o.inputs) == 0:
                         # I've no idea what the comment even means:  XXX delete this...
-                        # XXX this assertion is wrong, only true if we don't do o.count first (NOT SURE this statement is correct)
-                        #assert o.count == 1
+                        # XXX this assertion is wrong, only true if we don't do o.count first (NOT
+                        # SURE this statement is correct)
+
+                        # assert o.count == 1
+
                         total += self.do_constant_propagate(o, 1, depth + 1)
                 else:
                     # LLL: will always be false.  Unlink o from all the other inputs.
@@ -1876,26 +1923,26 @@ class ConstantPropagator:
                         i.outputs.remove(o)
                         # issue: i may be a new deadend?
                         if self.verbose and not i.outputs:
-                            print i, "has no outputs, a new deadend"
+                            print(i, "has no outputs, a new deadend")
 
                     o.inputs = []
                     total += self.do_constant_propagate(o, 0, depth + 1)
 
             elif o.component_type == NOT:
                 # Constant_propagate this, as component is only input.
-                #assert o.count == count
+                # assert o.count == count
                 total += self.do_constant_propagate(o, 0 if count else 1, depth + 1)
 
             elif o.component_type == TRANSITION:
                 # This will create a loop.  Instead we stop here.
                 assert o.count == count
-                #print "TRANSITION now constant :", o
+                # print("TRANSITION now constant :", o
                 assert len(o.outputs) == 0
 
             elif o.component_type == PROPOSITION:
                 # Constant_propagate this as component is only input.
                 assert o.count == count
-                #print "PROPOSITION now constant :", o
+                # print("PROPOSITION now constant :", o
                 assert len(o.outputs) == 0
 
                 if o.meta.is_legal:
@@ -1907,4 +1954,3 @@ class ConstantPropagator:
 
         total += 1
         return total
-

@@ -1,14 +1,14 @@
-from ggplib.propnet.constants import *
-
-from pprint import pprint
+from ggplib.propnet.constants import OR, AND, NOT, PROPOSITION, TRANSITION
 
 FALSE = "false"
 TRUE = "true"
 EITHER = "either"
 BASE = "base"
 
+
 class SeenInput(Exception):
     pass
+
 
 class Node:
     def __init__(self, c, v, id):
@@ -98,6 +98,7 @@ class Node:
 
     def __repr__(self):
         return "%s.%d(%s)" % (self.component.typename, self.id, len(self.values))
+
 
 class DependencyComponent:
     def __init__(self, *inputs):
@@ -228,7 +229,6 @@ class DependencyComponent:
             assert len(c.inputs) == 1
             return self.get_component_value(c.inputs[0])
 
-
         elif c.component_type == PROPOSITION:
             if c.meta.is_base or c.meta.is_input:
                 assert len(c.inputs) == 0
@@ -250,20 +250,22 @@ class DependencyComponent:
 
                 # special case for weird legals...
                 if len(c.inputs) == 0 and c.meta.is_legal:
-                    return "none" # XXX
+                    return "none"  # XXX
 
                 assert len(c.inputs) == 1, c
                 return self.get_component_value(c.inputs[0])
 
     def get_component_value(self, c):
         if c in self.mapping:
-            #print "Already in mapping", c
+            # print("Already in mapping", c)
             return self.mapping[c]
+
         value = self.get_component_value2(c)
         self.mapping[c] = value
         return value
 
 ###############################################################################
+
 
 def get_controls(propnet, verbose=False):
     controls = {}
@@ -273,13 +275,12 @@ def get_controls(propnet, verbose=False):
     dc.raise_on_seeing_input = True
     for t in all_transitions:
         try:
-            v = dc.get_component_value(t)
+            dc.get_component_value(t)
             assert len(dc.inputs_seen()) == 0
             if verbose:
-                print 'Adding control', t
+                print('Adding control', t)
             controls[t.cid] = t
 
         except SeenInput:
             pass
     return controls
-

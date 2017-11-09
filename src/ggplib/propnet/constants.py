@@ -15,4 +15,3 @@ legal = "legal"
 goal = "goal"
 terminal = "terminal"
 other = "other"
-
