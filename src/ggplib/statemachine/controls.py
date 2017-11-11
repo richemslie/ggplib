@@ -1,7 +1,6 @@
-from ggplib.propnet.constants import AND, OR, PROPOSITION, MAX_FAN_OUT_SIZE
+from ggplib.propnet.constants import PROPOSITION, MAX_FAN_OUT_SIZE
 from ggplib.propnet.factory import ConstantPropagator
 from ggplib import symbols
-from ggplib.propnet import trace
 from pprint import pprint
 from ggplib.util import log
 
@@ -34,8 +33,9 @@ class ControlBase:
                 if DEBUG:
                     split_propnet.print_summary()
 
-                # manually have to remove these (XXX - ughh)  ZZZXXXZZZZ remove these lines.  Was this just to make the reorder_components() work?
-                # we need to dupe_no_goals() - where goals that are dependent on something, need to be replaced with ors
+                # manually have to remove these (XXX - ughh) ZZZXXXZZZZ remove these lines.  Was
+                # this just to make the reorder_components() work?  we need to dupe_no_goals() -
+                # where goals that are dependent on something, need to be replaced with ors
                 for r in split_propnet.role_infos:
                     old_goals = r.goals
                     r.goals = []
@@ -78,7 +78,8 @@ class ControlBase:
                 assert len(c.inputs) <= MAX_FAN_OUT_SIZE
 
             # now we go through all our components and back_propagate everything
-            split_propnet.do_backpropagate_on([c for c in split_propnet.components.values() if not c.outputs and c.inputs])
+            comps = [c for c in split_propnet.components.values() if not c.outputs and c.inputs]
+            split_propnet.do_backpropagate_on(comps)
 
             # need to do this again
             split_propnet.topological_ordering()
@@ -87,6 +88,7 @@ class ControlBase:
             self.networks.append(split_propnet)
 
         assert len(self.networks) == len(self.bases)
+
 
 def do_we_have_control_bases(propnet, most_used_props, strip_goals=True):
     " heuristically try to establish if this is a control base ? "
@@ -131,13 +133,16 @@ def do_we_have_control_bases(propnet, most_used_props, strip_goals=True):
         print "YAY!", best.control_name
     return best
 
+
 # ok, bucket the loops into seperate maps
 class ControlFlowLoop:
     def __init__(self):
         self.bases = set()
         self.dependencies = {}
 
+
 def get_control_flow_states(controls, verbose=False):
+    # XXX this is function needs broken up
     dependencies = {}
     for t in controls.values():
         # only interested in transitions that have an input (cases where they don't are like (step 1)
@@ -173,34 +178,34 @@ def get_control_flow_states(controls, verbose=False):
             print "Doing", k
 
         if k not in loop_map and v not in loop_map:
-            l = ControlFlowLoop()
-            loop_map[k] = l
-            loop_map[v] = l
+            loop = ControlFlowLoop()
+            loop_map[k] = loop
+            loop_map[v] = loop
 
         else:
             if k in loop_map:
-                l = loop_map[k]
+                loop = loop_map[k]
                 if v in loop_map:
                     l2 = loop_map[v]
                     # ah shucks, merge it
-                    if l != l2:
+                    if loop != l2:
                         if verbose:
                             print "MERGEING"
                         for b in l2.bases:
-                            l.bases.add(b)
-                            loop_map[b] = l
+                            loop.bases.add(b)
+                            loop_map[b] = loop
 
                         for kk, vv in l2.dependencies.items():
-                            l.dependencies[kk] = vv
+                            loop.dependencies[kk] = vv
 
             else:
-                l = loop_map[v]
-                loop_map[k] = l
+                loop = loop_map[v]
+                loop_map[k] = loop
 
-        l.bases.add(k)
-        l.bases.add(v)
-        assert k not in l.dependencies
-        l.dependencies[k] = v
+        loop.bases.add(k)
+        loop.bases.add(v)
+        assert k not in loop.dependencies
+        loop.dependencies[k] = v
 
     if verbose:
         print "____________________"

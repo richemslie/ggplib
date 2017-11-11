@@ -6,21 +6,23 @@ from ggplib.propnet.constants import OR, AND, NOT, PROPOSITION, TRANSITION, MAX_
 
 DEBUG = False
 
-class Builder:
 
+class Builder:
     def __init__(self, interface, verbose=True):
         self.sm = None
         self.interface = interface
         self.verbose = verbose
 
-    def create_state_machine(self, role_count, num_bases, num_transitions, num_components, num_outputs, topological_size):
+    def create_state_machine(self, role_count, num_bases, num_transitions,
+                             num_components, num_outputs, topological_size):
         if self.verbose:
-            print "Creating SM with role_count: %s, #bases: %s, #trans %s, #comps %s, #outputs %s, topo %s" % (role_count,
-                                                                                                               num_bases,
-                                                                                                               num_transitions,
-                                                                                                               num_components,
-                                                                                                               num_outputs,
-                                                                                                               topological_size)
+            print "Creating SM with role_count: %s, "\
+                  "bases: %s, #trans %s, #comps %s, #outputs %s, topo %s" % (role_count,
+                                                                             num_bases,
+                                                                             num_transitions,
+                                                                             num_components,
+                                                                             num_outputs,
+                                                                             topological_size)
             print
 
         # create the c statemachine
@@ -28,16 +30,20 @@ class Builder:
                                               num_transitions, num_components,
                                               num_outputs, topological_size)
 
-    def set_role(self, role_index, name, input_start_index, legal_start_index, goal_start_index, num_inputs_legals, num_goals):
+    def set_role(self, role_index, name, input_start_index, legal_start_index,
+                 goal_start_index, num_inputs_legals, num_goals):
         if self.verbose:
-            print "Creating Role %s/%s with input/legal/goals %s/%s/%s #inputs/goals %s/%s" % (role_index,
-                                                                                               name,
-                                                                                               input_start_index,
-                                                                                               legal_start_index,
-                                                                                               goal_start_index,
-                                                                                               num_inputs_legals,
-                                                                                               num_goals)
-        self.sm.set_role(role_index, name, input_start_index, legal_start_index, goal_start_index, num_inputs_legals, num_goals)
+            print "Creating Role %s/%s with input/legal/goals"\
+                  "%s/%s/%s #inputs/goals %s/%s" % (role_index,
+                                                    name,
+                                                    input_start_index,
+                                                    legal_start_index,
+                                                    goal_start_index,
+                                                    num_inputs_legals,
+                                                    num_goals)
+
+        self.sm.set_role(role_index, name, input_start_index,
+                         legal_start_index, goal_start_index, num_inputs_legals, num_goals)
 
     def set_component(self, component_id, required_count_false, required_count_true,
                       output_index, number_outputs, initial_count, incr, topological_order):
@@ -118,7 +124,7 @@ class Builder:
             self.set_component(*args)
 
             sorted_outputs = c.outputs[:]
-            sorted_outputs.sort(key=lambda x:x.cid, reverse=False)
+            sorted_outputs.sort(key=lambda x: x.cid, reverse=False)
 
             for o in sorted_outputs:
                 assert o.cid < len(propnet.components)
@@ -186,6 +192,7 @@ def build_goals_only_sm(propnet):
     goal_builder.do_build(propnet)
     return goal_builder.sm
 
+
 def build_combined_state_machine(propnet):
     from ggplib.statemachine.forwards import FwdStateMachineAnalysis, depth_charges
     from ggplib.statemachine.controls import do_we_have_control_bases, get_control_flow_states, ControlBase
@@ -202,7 +209,7 @@ def build_combined_state_machine(propnet):
         control_bases = ControlBase(list(loop_control.bases), strip_goals=True)
         return build_combined_state_machine_refactoring(propnet.dupe(), control_bases)
 
-    #elif len(loop_controls) == 2:
+    # elif len(loop_controls) == 2:
     #    split_network_1 = do_split_network(propnet, loop_controls, 0, 1)
     #    split_network_2 = do_split_network(propnet, loop_controls, 1, 0)
 
@@ -225,6 +232,7 @@ def build_combined_state_machine(propnet):
         return None
 
     return build_combined_state_machine_refactoring(propnet.dupe(), control_bases, strip_goals=True)
+
 
 def build_combined_state_machine_refactoring(propnet, control_bases, strip_goals=True):
     from ggplib import interface
@@ -270,6 +278,7 @@ def build_combined_state_machine_refactoring(propnet, control_bases, strip_goals
 
     return interface.CombinedStateMachine(goal_sm, controls)
 
+
 def build_goaless_sm(propnet):
     from ggplib import interface
     propnet = propnet.dupe()
@@ -279,8 +288,9 @@ def build_goaless_sm(propnet):
     propnet = propnet.dupe()
     propnet.unlink_deadends(propnet.all_set_without_goals())
 
-    # manually have to remove these (XXX - ughh)  ZZZXXXZZZZ remove these lines.  Was this just to make the reorder_components() work?
-    # we need to dupe_no_goals() - where goals that are dependent on something, need to be replaced with ors
+    # manually have to remove these (XXX - ughh) ZZZXXXZZZZ remove these lines.  Was this just to
+    # make the reorder_components() work?  we need to dupe_no_goals() - where goals that are
+    # dependent on something, need to be replaced with ors
     for r in propnet.role_infos:
         old_goals = r.goals
         r.goals = []
@@ -298,6 +308,7 @@ def build_goaless_sm(propnet):
     return interface.GoallessStateMachine(role_count,
                                           goalless_sm,
                                           goal_sm)
+
 
 def build_standard_sm(propnet):
     from ggplib import interface
@@ -323,6 +334,6 @@ def build_sm(propnet, combined=True):
 
     if sm is None:
         sm = build_goaless_sm(propnet)
-        #sm = build_standard_sm(propnet)
+        # sm = build_standard_sm(propnet)
 
     return sm

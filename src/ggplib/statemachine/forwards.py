@@ -7,6 +7,7 @@ from ggplib.propnet.constants import NOT
 
 DEBUG = False
 
+
 class FwdStateMachineBase:
 
     def __init__(self, propnet):
@@ -16,6 +17,9 @@ class FwdStateMachineBase:
         for p, b in zip(self.propnet.base_propositions, base_map):
             self.propagate(p, b)
 
+    def reset(self):
+        self.update_bases(self.propnet.get_initial_state())
+
     def get_legal_moves(self, role_info):
         return [l for l in role_info.legals if l.count]
 
@@ -24,8 +28,8 @@ class FwdStateMachineBase:
 
     def goal_value(self, role):
         for g in self.propnet.goal_propositions[role]:
-             if g.count:
-                 return g.meta.goal_value
+            if g.count:
+                return g.meta.goal_value
         return -1
 
     def get_next_state(self, inputs):
@@ -42,6 +46,7 @@ class FwdStateMachineBase:
     def __repr__(self):
         state = [p.count for p in self.propnet.base_propositions]
         return self.propnet.to_gdl(state)
+
 
 class FwdStateMachine(FwdStateMachineBase):
     ''' this was supposedly the fastest (but the clearest way) to do propagation when we wrote this thing. '''
@@ -174,7 +179,10 @@ class FwdStateMachine2(FwdStateMachine):
         self.forward_propagate_value(component, 1 if value else -1)
 
     def forward_propagate_value(self, component, incr, depth=0):
-        print " " * depth + "fwd_prop cid:%d, count %d, incr %d, outputs %d" % (component.cid, component.count, incr, len(component.outputs))
+        print " " * depth + "fwd_prop cid:%d, count %d, incr %d, outputs %d" % (component.cid,
+                                                                                component.count,
+                                                                                incr,
+                                                                                len(component.outputs))
 
         # CONSTRAINT: only called if propagation is required
 
@@ -187,7 +195,8 @@ class FwdStateMachine2(FwdStateMachine):
             test = o.requires[incr + 1]
             print "%stesting to cid:%d, test %d/%d" % (" " * (depth + 1), o.cid, o.count, test)
             if new_count == test and o.outputs:
-                self.forward_propagate_value(o, incr * o.increment_multiplier, depth+1)
+                self.forward_propagate_value(o, incr * o.increment_multiplier, depth + 1)
+
 
 class FwdStateMachine2_2(FwdStateMachine2):
     def forward_propagate_value(self, component, incrx):
@@ -210,6 +219,7 @@ class FwdStateMachine2_2(FwdStateMachine2):
                 for o2 in o.outputs:
                     print "adding2", (o2, new_increment)
                     todo.append((o2, new_increment))
+
 
 class FwdStateMachine2_3(FwdStateMachine2):
     def propagate(self, component, value):
@@ -237,6 +247,7 @@ class Level:
 
     def __repr__(self):
         return str((self.size, self.components))
+
 
 class FwdStateMachine3(FwdStateMachine):
 
@@ -323,6 +334,7 @@ class FwdTraceStateMachine(FwdStateMachine2):
             if new_count == test:
                 self.forward_propagate_trace(o.outputs, incr * o.increment_multiplier, depth + 1)
 
+
 class FwdStateMachineCombined(FwdStateMachine):
 
     def __init__(self, propnets, goal_propnet):
@@ -368,8 +380,8 @@ class FwdStateMachineCombined(FwdStateMachine):
         assert self.goal_sm.is_terminal()
 
         for g in self.goal_sm.propnet.goal_propositions[role]:
-             if g.count:
-                 return g.meta.goal_value
+            if g.count:
+                return g.meta.goal_value
         return -1
 
 ###############################################################################
@@ -472,6 +484,7 @@ def play_verbose(sm, seconds):
         print "Played to depth %d" % depth
         for r in sm.propnet.roles:
             print "Final score for %s : %s " % (r, sm.goal_value(r))
+
 
 def depth_charges(sm, n, state_watcher=None):
     # play for n seconds
