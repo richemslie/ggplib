@@ -12,6 +12,9 @@ src/ggplib/props/*
 *.pyc
 *__pycache__/
 
+# for pytest?
+.cache
+
 # 3rd party stuff
 bin/install
 ggp-base
