@@ -6,6 +6,7 @@ from ggplib.player.base import MatchPlayer
 from ggplib.statemachine import builder
 from ggplib import interface
 
+
 class MatchInfo:
     def __init__(self, sm):
         self.sm = sm
@@ -49,6 +50,7 @@ class MatchInfo:
             if total_score != 100:
                 self.two_player_fixed_sum = False
 
+
 class CppPlayer(MatchPlayer):
     def __init__(self, name=None):
         if name is None:
@@ -89,13 +91,16 @@ class CppPlayer(MatchPlayer):
         self.sm.update_bases(self.match.get_current_state())
         return self.proxy.on_next_move(finish_time)
 
+
 class CppRandomPlayer(CppPlayer):
     def meta_create_player(self):
         return interface.create_random_player(self.sm, self.match.our_role_index)
 
+
 class CppLegalPlayer(CppPlayer):
     def meta_create_player(self):
         return interface.create_legal_player(self.sm, self.match.our_role_index)
+
 
 class SimpleMctsPlayer(CppPlayer):
     skip_single_moves = False
@@ -130,11 +135,10 @@ class SimpleMctsPlayer(CppPlayer):
                                                    self.next_time)
 
 
-
-
 class GGTestPlayer1(SimpleMctsPlayer):
     skip_single_moves = True
     max_tree_search_time = 3
+
 
 class GGTestPlayer2(GGTestPlayer1):
     pct_of_random_moves = 0.25

@@ -8,17 +8,24 @@ from ggplib.util import log
 from ggplib.propnet import getpropnet
 from ggplib.statemachine import builder
 
-###############################################################################
+###################################################################################################
+
+# Indicate how much time to give for communication between gamemaster and player.  This is useful
+# for when matches are scheduled at other locations around the world and the latency can cause
+# timeouts.
 
 CUSHION_TIME = 1.0
+
+###################################################################################################
 
 class BadGame(Exception):
     pass
 
+
 class CriticalError(Exception):
     pass
 
-###############################################################################
+###################################################################################################
 
 class Match:
     def __init__(self, match_id, role, meta_time, move_time, player, gdl):
@@ -42,7 +49,10 @@ class Match:
         # do not change this
         return self.states[-1]
 
-    def do_start(self):
+    def do_start(self, start_state=None):
+        ''' Optional start state.  Used mostly for testing. If none will use the inital_state of
+            propnet. '''
+
         enter_time = time.time()
         end_time = enter_time + self.meta_time - CUSHION_TIME
 
@@ -53,9 +63,36 @@ class Match:
         log.info("Got propnet - building statemachine")
         self.sm = builder.build_standard_sm(self.propnet)
         self.sm.reset()
-        self.states.append(self.sm.get_initial_state())
-
         log.debug("Got state machine %s" % self.sm)
+
+        if start_state:
+            # convert to base state?
+            if isinstance(start_state, list):
+                base_state = self.sm.new_base_state()
+                for index, value in enumerate(start_state):
+                    base_state.set(index, value)
+            else:
+                base_state = start_state
+
+            str_state = self.propnet.to_gdl([base_state.get(i)
+                                             for i in range(len(self.propnet.base_propositions))])
+
+            # XXX need a dump function...  should be one somewhere
+            log.debug("The start state is %s" % str_state)
+
+            # update the statemachine
+            self.sm.update_bases(base_state)
+
+            # check it is not actually finished
+            assert not self.sm.is_terminal()
+
+            # this is our inital_state
+            initial_state = base_state
+
+        else:
+            initial_state = self.sm.get_initial_state()
+
+        self.states.append(initial_state)
 
         # store a joint move internally
         self.joint_move = self.sm.get_joint_move()
@@ -73,6 +110,8 @@ class Match:
 
         # FINALLY : call the meta gaming stage on the player
         self.player.reset(self)
+
+        # note: on_meta_gaming must use self.match.get_current_state()
         self.player.on_meta_gaming(end_time)
 
     def apply_move(self, moves):
@@ -109,7 +148,8 @@ class Match:
         if self.last_played_move is not None:
             if self.last_played_move != our_move:
                 # all we do is log, and continue.  Really messed up though.
-                msg = "Gamemaster sent back a different move from played move %s != %s" % (self.last_played_move, our_move)
+                msg = "Gamemaster sent back a different move from played move %s != %s" % (self.last_played_move,
+                                                                                           our_move)
                 log.critical(msg)
                 raise CriticalError(msg)
 
@@ -188,7 +228,7 @@ class Match:
     def cleanup(self):
         try:
             self.player.cleanup()
-        except Exception, exc:
+        except Exception as exc:
             log.error("FAILED TO CLEANUP PLAYER: %s" % exc)
             type, value, tb = sys.exc_info()
             log.error(traceback.format_exc())

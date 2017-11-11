@@ -1,5 +1,6 @@
 from ggplib.util import log
 
+
 class MatchPlayer:
     ' defines interface '
     def __init__(self, name=None):
@@ -16,6 +17,7 @@ class MatchPlayer:
         self.match = match
 
     def on_meta_gaming(self, finish_time):
+        ' note: on_meta_gaming must use self.match.get_current_state() and NOT initial_base_state '
         pass
 
     def on_apply_move(self, move):
@@ -27,20 +29,3 @@ class MatchPlayer:
     def cleanup(self):
         ' clean up any memory allocated, etc '
         pass
-
-class RandomPlayer(MatchPlayer):
-    ' plays randomly '
-
-    def on_next_move(self, finish_time):
-        import time
-        import random
-
-        # get the statemachine...
-        sm = self.match.sm
-
-        # constraint: state machine will be correct
-        ls = sm.get_legal_state(self.match.our_role_index)
-
-        # a random choice
-        return ls.get_legal(random.randrange(0, ls.get_count()))
-

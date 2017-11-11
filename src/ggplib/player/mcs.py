@@ -5,6 +5,7 @@ import random
 from ggplib.statemachine import builder
 from ggplib.player.base import MatchPlayer
 
+
 class MoveStat:
     def __init__(self, choice, move, role_count):
         self.choice = choice
@@ -23,6 +24,7 @@ class MoveStat:
         for ri, score in enumerate(scores):
             self.scores[ri] += float(score)
         self.visits += 1
+
 
 class McsPlayerMeta:
     """ McsPlayerMeta, is just a player without any match state.  This is how all our players
@@ -167,11 +169,11 @@ class McsPlayerMeta:
         sample_selection = None
         acc_visits = 0
 
-        print "Total visits", root_visits
+        print("Total visits", root_visits)
         # ok - now we dump everything for debug, and return the best score
         for stat in sorted(all_scores.values(), key=lambda x: x.get(self.our_role_index), reverse=True):
             score_str = " / ".join(("%.2f" % stat.get(ii)) for ii in range(self.role_count))
-            print "Move %s, visits %d, scored %s" % (stat.move, stat.visits, score_str)
+            print("Move %s, visits %d, scored %s" % (stat.move, stat.visits, score_str))
 
             if sample_selection is None:
                 acc_visits += stat.visits
@@ -183,7 +185,7 @@ class McsPlayerMeta:
                 best_score = s
                 best_selection = stat
 
-        print "chose", sample_selection.move
+        print("chose", sample_selection.move)
 
         assert best_selection is not None, "WTF best_selection should never be None"
         return best_selection
@@ -220,6 +222,7 @@ class McsPlayerMeta:
 
         return choice
 
+
 class MCSPlayer(MatchPlayer):
     def reset(self, match):
         MatchPlayer.reset(self, match)
@@ -236,6 +239,4 @@ class MCSPlayer(MatchPlayer):
     def on_next_move(self, finish_time):
         self.meta.set_current_state(self.match.get_current_state())
         return self.meta.on_next_move(finish_time)
-
-
 
