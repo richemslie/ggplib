@@ -11,6 +11,7 @@ class Term(str):
     def arity(self):
         return 0
 
+
 class ListTerm(tuple):
     def __init__(self, *args):
         self.is_function = None
@@ -54,7 +55,8 @@ def is_function(term):
 ###############################################################################
 
 def tokenize(s):
-    return s.replace('(',' ( ').replace(')',' ) ').split()
+    return s.replace('(', ' ( ').replace(')', ' ) ').split()
+
 
 class SymbolFactory:
     def __init__(self):
@@ -88,12 +90,12 @@ class SymbolFactory:
 
         # strip comment lines
         lines = []
-        for l in s.splitlines():
-            l = l.strip()
-            useful = l.split(";")
-            l = useful[0].strip()
-            if l:
-                lines.append(l)
+        for line in s.splitlines():
+            line = line.strip()
+            useful = line.split(";")
+            line = useful[0].strip()
+            if line:
+                lines.append(line)
         s = " ".join(lines)
 
         for token in tokenize(s):
@@ -113,8 +115,8 @@ class SymbolFactory:
             assert isinstance(sexpr, (Term, ListTerm))
             yield sexpr
 
-    def symbolize(self, s):
+    def symbolize(self, string):
         ' takes a single symbol as a string and internalises '
-        l = list(self.to_symbols(s))
-        assert len(l) == 1
-        return l[0]
+        line = list(self.to_symbols(string))
+        assert len(line) == 1
+        return line[0]

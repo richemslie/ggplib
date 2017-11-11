@@ -48,11 +48,11 @@ class GGPServer(Resource):
         return self.handle(request)
 
     def render_POST(self, request):
-        #log.debug("Got POST request from: %s" % request.getClientIP())
-        #log.debug("HEADERS : %s" % pprint.pformat(request.getAllHeaders()))
+        # log.debug("Got POST request from: %s" % request.getClientIP())
+        # log.debug("HEADERS : %s" % pprint.pformat(request.getAllHeaders()))
 
         res = self.handle(request)
-        res = res.replace('(',' ( ').replace(')',' ) ')
+        res = res.replace('(', ' ( ').replace(')', ' ) ')
 
         # 'CORS' - stuff I don't understand.  Was needed to run standford 'player checker'.
         request.setHeader('Access-Control-Allow-Origin', '*')
@@ -270,6 +270,9 @@ def main():
 
     reactor.listenTCP(port, site)
     reactor.run()
+
+
+###############################################################################
 
 if __name__ == "__main__":
     main()

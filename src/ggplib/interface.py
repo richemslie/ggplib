@@ -3,15 +3,16 @@ from cffi import FFI
 
 from ggplib.util import log
 
+
 def get_lib():
     # get the paths
     d = os.path.dirname
     local_path = os.path.join(d(d(os.path.abspath(__file__))), "cpp")
 
-    def process_line(l):
+    def process_line(line):
         # pre-process a line.  Skip any lines with comments.  Replace strings in remap.
-        if "//" in l:
-            return l
+        if "//" in line:
+            return line
         remap = {
             "StateMachine*" : "void*",
             "BaseState*" : "void*",
@@ -24,23 +25,23 @@ def get_lib():
         }
 
         for k, v in remap.items():
-            if k in l:
-                l = l.replace(k, v)
-                l = l.rstrip()
-        return l
+            if k in line:
+                line = line.replace(k, v)
+                line = line.rstrip()
+        return line
 
     def get_lines(filename):
         # take subset of file (since it is c++, and want only the c portion
         emit = False
-        for l in file(filename):
-            if "CFFI START INCLUDE" in l:
+        for line in file(filename):
+            if "CFFI START INCLUDE" in line:
                 emit = True
-            elif "CFFI END INCLUDE" in l:
+            elif "CFFI END INCLUDE" in line:
                 emit = False
             if emit:
-                l = process_line(l)
-                if l:
-                    yield l
+                line = process_line(line)
+                if line:
+                    yield line
 
     # get ffi object, and lib object
     ffi = FFI()
@@ -55,6 +56,7 @@ ffi, lib = get_lib()
 
 ###############################################################################
 # wrappers of c++ classes
+###############################################################################
 
 class BaseState:
     def __init__(self, c_base_state):
@@ -78,9 +80,11 @@ class BaseState:
     def __eq__(self, other):
         return self.equals(other)
 
+
 def dealloc_basestate(s):
     lib.BaseState__deleteBaseState(s.c_base_state)
     s.c_base_state = None
+
 
 class LegalState:
     def __init__(self, c_legal_state):
@@ -92,6 +96,7 @@ class LegalState:
     def get_legal(self, index):
         return lib.LegalState__getLegal(self.c_legal_state, index)
 
+
 class JointMove:
     def __init__(self, c_joint_move):
         self.c_joint_move = c_joint_move
@@ -101,6 +106,7 @@ class JointMove:
 
     def set(self, role_index, value):
         lib.JointMove__set(self.c_joint_move, role_index, value)
+
 
 class StateMachine:
     def __init__(self, role_count, num_bases, num_transitions, num_components, num_ouputs, topological_size):
@@ -173,6 +179,7 @@ class StateMachine:
     def get_initial_state(self):
         return self.initial_base_state
 
+
 class GoallessStateMachine(StateMachine):
     def __init__(self, role_count, goalless_sm, goal_sm):
         self.goalless_sm = goalless_sm
@@ -180,11 +187,13 @@ class GoallessStateMachine(StateMachine):
         self.c_statemachine = lib.createGoallessStateMachine(role_count,
                                                              goalless_sm.c_statemachine,
                                                              goal_sm.c_statemachine)
+
     def get_roles(self):
         return self.goal_sm.roles
 
     def get_initial_state(self):
         return self.goal_sm.initial_base_state
+
 
 class CombinedStateMachine(StateMachine):
     def __init__(self, goal_sm, controls):
@@ -213,6 +222,7 @@ class CombinedStateMachine(StateMachine):
 
         return sm.initial_base_state
 
+
 class CppProxyPlayer:
     def __init__(self, c_player):
         self.c_player = c_player
@@ -230,16 +240,22 @@ class CppProxyPlayer:
     def on_next_move(self, finish_time):
         return lib.PlayerBase__onNextMove(self.c_player, finish_time)
 
+
+###############################################################################
 # separate function to create player (since will different configuration for each player type)
+###############################################################################
 
 def create_random_player(sm, our_role_index):
     return lib.Player__createRandomPlayer(sm.c_statemachine, our_role_index)
 
+
 def create_legal_player(sm, our_role_index):
     return lib.Player__createLegalPlayer(sm.c_statemachine, our_role_index)
 
+
 def create_simple_mcts_player(sm, our_role_index, *args):
     return lib.Player__createSimpleMCTSPlayer(sm.c_statemachine, our_role_index, *args)
+
 
 class Logging:
     def verbose(self, msg):
@@ -259,6 +275,7 @@ class Logging:
 
     def critical(self, msg):
         lib.Log_critical(msg)
+
 
 def depth_charge(sm, seconds):
     c_obj = lib.DepthChargeTest__create(sm.c_statemachine)
@@ -280,6 +297,6 @@ def initialise_k273(log_level, log_name_base="logfile"):
         if not os.path.exists(log_filename):
             break
 
-        count +=1
+        count += 1
 
     lib.initK273(log_level, log_filename)
