@@ -1,8 +1,8 @@
-import sys
-
 __all__ = "initialise verbose debug info warning critical Log".split()
 
+
 cpp_log = None
+
 
 def initialise(logname=None):
     if logname is None:
@@ -11,6 +11,7 @@ def initialise(logname=None):
         cpp_log = Logging()
     else:
         init_basic_python_logging(logname)
+
 
 def init_basic_python_logging(logname):
     ' use standard python framework for logging '
@@ -43,11 +44,13 @@ def verbose(msg):
     else:
         print msg
 
+
 def debug(msg):
     if cpp_log:
         cpp_log.debug(msg)
     else:
         print msg
+
 
 def info(msg):
     if cpp_log:
@@ -55,17 +58,20 @@ def info(msg):
     else:
         print msg
 
+
 def warning(msg):
     if cpp_log:
         cpp_log.warning(msg)
     else:
         print msg
 
+
 def error(msg):
     if cpp_log:
         cpp_log.error(msg)
     else:
         print msg
+
 
 def critical(msg):
     if cpp_log:
@@ -82,6 +88,7 @@ class LogLevel:
     info = 5
     debug = 6
     verbose = 7
+
 
 class Log:
     ' module level logger '
