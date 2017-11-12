@@ -101,7 +101,7 @@ class GGPServer(Resource):
                 return self.handle_abort(symbols)
 
             else:
-                log.error("UNHANDLED REQUST %s" % symbols)
+                log.error("UNHANDLED REQUEST %s" % symbols)
 
         except Exception, exc:
             log.error("ERROR - aborting: %s" % exc)
@@ -116,6 +116,7 @@ class GGPServer(Resource):
 
     def handle_info(self):
         t = time.time()
+
         # do info_counts or we get reports of "0 infos in the last minute"
         self.info_counts += 1
         if t - self.last_info_time > 60:
@@ -193,8 +194,8 @@ class GGPServer(Resource):
         res = self.current_match.do_play(move)
         if res != "done":
             log.error("WTF game not done %s" % self.sm)
-        else:
 
+        else:
             # cancel any timeout callbacks
             self.update_gameserver_timeout(None)
 
