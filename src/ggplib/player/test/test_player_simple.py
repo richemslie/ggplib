@@ -1,6 +1,6 @@
 from ggplib.player import get
 from ggplib.player.gamemaster import GameMaster
-from ggplib.propnet.lookup import get_database
+from ggplib.db.lookup import get_database
 
 
 _setup_once = False
