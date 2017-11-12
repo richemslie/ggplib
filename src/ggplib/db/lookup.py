@@ -1,5 +1,6 @@
 """
-Given some symbols (which is a game in gdl).  Create a signature.  If the signature maps, then maps the underlying symbols to the player.
+Given some symbols (which is a game in gdl).  Create a signature.  If the signature maps, then maps
+the underlying symbols to the player.
 
 
 For all facts/rules, replace with role1 ... rolen.
@@ -16,20 +17,25 @@ For each group of facts - create a class of each type.
 (base (control black))
 
 
-Note: that implementation here is almonst tiltyard specific.   It only works since it see things in a certain order and numbers are not remapped.
+Note: that implementation here is almost Tiltyard specific.  It only works since it see things in
+a certain order and numbers are not remapped.
 
 """
 
 import os
 import sys
 import pprint
+import traceback
 from collections import OrderedDict
 
 from ggplib.symbols import SymbolFactory, Term, ListTerm
+from ggplib.util import log
 from ggplib.propnet import getpropnet
-import traceback
+from ggplib.statemachine import builder
 
 root_constants = "role init base input true next legal terminal does goal".split()
+
+###############################################################################
 
 def facts(gdl):
     for s in gdl:
@@ -37,16 +43,18 @@ def facts(gdl):
         if s[0] != "<=":
             yield s
 
+
 def rules(gdl):
     for s in gdl:
         assert isinstance(s, ListTerm)
         if s[0] == "<=":
             yield s
 
+
 def extract_terms(*args):
     seen = set()
-    def extract_terms_(*args):
 
+    def extract_terms_(*args):
         for a in args:
             if isinstance(a, ListTerm):
                 for e in a:
@@ -80,6 +88,7 @@ class Literal:
     def literal(self):
         return True
 
+
 class SingleLiteral(Literal):
     def __init__(self, e):
         self.e = e
@@ -90,8 +99,10 @@ class SingleLiteral(Literal):
     def __str__(self):
         return str(self.e)
 
+
 class CompoundLiteral(Literal, ListTerm):
     pass
+
 
 class NotLiteral(Literal):
     def __init__(self, lit):
@@ -104,6 +115,7 @@ class NotLiteral(Literal):
     def __str__(self):
         return "(not %s)" % str(self.lit)
 
+
 class DistinctLiteral(Literal):
     def __init__(self, lhs, rhs):
         self.lhs = lhs
@@ -115,6 +127,7 @@ class DistinctLiteral(Literal):
 
     def __str__(self):
         return "(distinct %s %s)" % (self.lhs, self.rhs)
+
 
 class OrLiteral(Literal):
     def __init__(self, body):
@@ -158,6 +171,7 @@ A term can be simple, or composite.  If compound - it is of one level (a functio
     def __repr__(self):
         return "(%s %s)" % (self.head, " ".join(str(e) for e in self.body))
 
+
 def establish_positions(tup1, tup2):
     # takes two tuples and return the joint values
 
@@ -184,6 +198,7 @@ def establish_positions(tup1, tup2):
 
     return list(walker(tup1, tup2))
 
+
 class Signature:
     def __init__(self, manager, gdl):
         self.gdl = gdl
@@ -202,6 +217,7 @@ class Signature:
 
     def __repr__(self):
         return repr(self.num_sig)
+
 
 class SignatureFactory:
     def __init__(self):
@@ -308,10 +324,11 @@ class SignatureFactory:
 
         self.term = self.term3
         s.set_value_sig(tuple(["fact",
-                             self.term(f.head),
-                             tuple(self.term(t) for t in f.body)]))
+                               self.term(f.head),
+                               tuple(self.term(t) for t in f.body)]))
 
         self.sigs.append(s)
+
 
 def to_literal(e):
     if isinstance(e, Term):
@@ -330,6 +347,7 @@ def to_literal(e):
         return OrLiteral([to_literal(x) for x in e[1:]])
 
     return CompoundLiteral(e)
+
 
 class Rule:
     def __init__(self, head, body):
@@ -423,11 +441,6 @@ def build_symbol_map(sig, verbose=False):
                 groups.pop(k)
 
         # ok now, we go through column by column
-        # while len(col) > 1:
-           # for each col:
-              # if they are all the same - no ambiguity - we can add to constant_mapping, and pop from row
-              # if they are all known - the pop from row
-        # if len(col) == 1 - then we can grab everything from it
         for k, left in groups.items():
             assert len(left) > 1
 
@@ -453,19 +466,6 @@ def build_symbol_map(sig, verbose=False):
                         something_popped = True
                         columns.pop(ii)
                         break
-
-                    # # unique test:
-                    # if len(set(col)) == len(col):
-                    #     for const, value in col:
-                    #         if const in constant_mapping:
-                    #             assert constant_mapping[const] == value
-                    #         constant_mapping[const] = value
-
-                    #     if verbose:
-                    #         print "popping unique col"
-                    #     something_popped = True
-                    #     columns.pop(ii)
-                    #     break
 
                     # if they are all known - then pop from row
                     everything_known = True
@@ -493,32 +493,6 @@ def build_symbol_map(sig, verbose=False):
 
             if len(columns) == 0:
                 groups.pop(k)
-
-        # for leftk, left in groups.items():
-        #     assert len(left) > 1
-        #     columns = zip(*left)
-        #     if len(columns) == 0:
-        #         continue
-
-        #     # if everything is known in first column, we can break into separate categories
-        #     everything_known = True
-        #     all_first_consts = set()
-        #     for const, value in columns[0]:
-        #         all_first_consts.add(const)
-        #         if const not in constant_mapping:
-        #             everything_known = False
-        #             break
-        #     new_groups = {}
-        #     if everything_known and len(all_first_consts) > 1:
-        #         for l in left:
-        #             new_groups.setdefault(l[0], []).append(l)
-
-        #         if verbose:
-        #             print 'creating %s new groups' % len(new_groups)
-
-        #         for k, v in new_groups.items():
-        #             groups[counter.next()] = v
-        #         groups.pop(leftk)
 
         for k, left in groups.items():
             did_something = True
@@ -751,7 +725,9 @@ class Database:
 class LookupFailed(Exception):
     pass
 
+
 the_database = None
+
 
 def get_database(db_path=None):
     if db_path is None:
@@ -766,47 +742,63 @@ def get_database(db_path=None):
 
     return the_database
 
-def ensure_propnet(info):
-    if info.propnet is None:
-        print "lookup: getting propnet for", info.game
-        info.propnet = getpropnet.get_with_game(info.game)
 
-    return info
+# def ensure_propnet(info):
+#     if info.propnet is None:
+#         print "lookup: getting propnet for", info.game
+#         info.propnet = getpropnet.get_with_game(info.game)
 
-def get_info_and_mapping(gdl_str):
-    ''' mapping is a reverve mapping from gdl_str -> to db version '''
-    db = get_database()
-    try:
-        res = db.lookup(gdl_str)
-    except:
-        etype, value, tb = sys.exc_info()
-        traceback.print_exc()
-        res = None
+#     return info
 
-    if res is None:
-        raise LookupFailed("Did not find game")
 
-    info, mapping = res
-    ensure_propnet(info)
-    return info, mapping
+# def get_info_and_mapping(gdl_str):
+#     ''' mapping is a reverve mapping from gdl_str -> to db version '''
+#     db = get_database()
+#     try:
+#         res = db.lookup(gdl_str)
+#     except Exception:
+#         etype, value, tb = sys.exc_info()
+#         traceback.print_exc()
+#         res = None
 
-def get_propnet(gdl_str):
-    db = get_database()
-    info, _ = db.lookup(gdl_str)
-    if info is None:
-        raise LookupFailed("Did not find game")
+#     if res is None:
+#         raise LookupFailed("Did not find game")
 
-    ensure_propnet(info)
-    return info.propnet
+#     info, mapping = res
+#     ensure_propnet(info)
+#     return info, mapping
 
-def get_propnet_by_name(name):
-    db = get_database()
-    if name not in db.game_mapping:
-        raise LookupFailed("Did not find game")
 
-    info = db.game_mapping[name]
-    ensure_propnet(info)
-    return info.propnet
+# def get_propnet(gdl_str):
+#     db = get_database()
+#     info, _ = db.lookup(gdl_str)
+#     if info is None:
+#         raise LookupFailed("Did not find game")
+
+#     ensure_propnet(info)
+#     return info.propnet
+
+
+# def get_propnet_by_name(name):
+#     db = get_database()
+#     if name not in db.game_mapping:
+#         raise LookupFailed("Did not find game")
+
+#     info = db.game_mapping[name]
+#     ensure_propnet(info)
+#     return info.propnet
+
+
+# def get_gdl_for_game(game, factory=None):
+#     from ggplib.propnet.getpropnet import rulesheet_dir
+#     filename = os.path.join(rulesheet_dir, game + ".kif")
+#     gdl_str = file(filename).read()
+
+#     if factory is None:
+#         factory = SymbolFactory()
+#     gdl = list(factory.to_symbols(gdl_str))
+#     return gdl
+
 
 def get_all_game_names():
     for fn in os.listdir(getpropnet.rulesheet_dir):
@@ -815,12 +807,62 @@ def get_all_game_names():
 
         yield fn.replace(".kif", "")
 
-def get_gdl_for_game(game, factory=None):
-    from ggplib.propnet.getpropnet import rulesheet_dir
-    filename = os.path.join(rulesheet_dir, game + ".kif")
-    gdl_str = file(filename).read()
+###############################################################################
+###############################################################################
+###############################################################################
 
-    if factory is None:
-        factory = SymbolFactory()
-    gdl = list(factory.to_symbols(gdl_str))
-    return gdl
+# def get_basic_propnet_and_mapping(gdl, match_id, end_time):
+#     # XXX do something with end_time
+#     from galvanise.propnet import lookup
+#     from galvanise.propnet import getpropnet
+
+#     # get the propnet, first try by looking it up. Otherwise just build a temporary file.
+#     try:
+#         lines = []
+#         for s in gdl:
+#             lines.append(str(s))
+#         gdl_str = "\n".join(lines)
+#         info, mapping = lookup.get_info_and_mapping(gdl_str)
+
+#         # set the reverse mapping to look things up
+
+#         return info.propnet, mapping, info.game
+
+#     except lookup.LookupFailed, exc:
+#         # XXX - builder should not build propnets...
+#         log.warning("Failed to lookup gdl %s" % exc)
+#         log.warning("Building from scratch")
+#         return getpropnet.get_with_gdl(gdl, match_id), None, "unknown"
+
+
+def get_game(gdl, match_id, end_time):
+    # XXX ignoring end_time
+    try:
+        lines = []
+        for s in gdl:
+            lines.append(str(s))
+        gdl_str = "\n".join(lines)
+
+        db = get_database()
+        try:
+            info, mapping = db.lookup(gdl_str)
+        except Exception:
+            etype, value, tb = sys.exc_info()
+            traceback.print_exc()
+            raise LookupFailed("Did not find game")
+
+        # lazy loads the propnet
+        if info.propnet is None:
+            log.info("lookup: getting propnet for '%s'" % info.game)
+            info.propnet = getpropnet.get_with_game(info.game)
+
+        sm = builder.build_standard_sm(info.propnet)
+        return info.propnet, mapping, sm, info.game
+
+    except LookupFailed as exc:
+        log.error("Lookup failed: %s" % exc)
+        propnet = getpropnet.get_with_gdl(gdl, match_id)
+        propnet_symbol_mapping = None
+        sm = builder.build_standard_sm(propnet)
+        game_name = "unknown"
+        return propnet, propnet_symbol_mapping, sm, game_name

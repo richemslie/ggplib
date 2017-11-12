@@ -4,9 +4,9 @@ import pprint
 import traceback
 
 from ggplib.util import log
+from ggplib.symbols import tokenize
 
-from ggplib.propnet import getpropnet
-from ggplib.statemachine import builder
+from ggplib.db import lookup
 
 ###################################################################################################
 
@@ -24,6 +24,18 @@ class BadGame(Exception):
 
 class CriticalError(Exception):
     pass
+
+###################################################################################################
+
+def replace_symbols(s, from_, to_):
+    ''' given a string s, will replace each symbol from_ -> to_. '''
+    symbols = tokenize(str(s))
+    new_symbols = []
+    for sym in symbols:
+        if sym == from_:
+            sym = to_
+        new_symbols.append(sym)
+    return " ".join(new_symbols).replace('( ', '(').replace(' )', ')')
 
 ###################################################################################################
 
@@ -58,12 +70,15 @@ class Match:
 
         log.debug("Match.do_start(), time = %.1f" % (end_time - enter_time))
 
-        self.propnet = getpropnet.get_with_gdl(self.gdl, self.match_id)
+        (self.propnet,
+         self.propnet_symbol_mapping,
+         self.sm,
+         self.game_name) = lookup.get_game(self.gdl, self.match_id, end_time)
 
-        log.info("Got propnet - building statemachine")
-        self.sm = builder.build_standard_sm(self.propnet)
         self.sm.reset()
-        log.debug("Got state machine %s" % self.sm)
+        log.debug("Got state machine %s for game '%s' and match_id: %s" % (self.sm,
+                                                                           self.game_name,
+                                                                           self.match_id))
 
         if start_state:
             # convert to base state?
@@ -98,20 +113,25 @@ class Match:
         self.joint_move = self.sm.get_joint_move()
 
         # set our role index
+        if self.propnet_symbol_mapping:
+            our_role = self.propnet_symbol_mapping[self.role]
+        else:
+            our_role = self.role
+
+        self.our_mapped_role = our_role
         for idx, r in enumerate(self.sm.get_roles()):
-            if r == self.role:
+            if r == our_role:
                 self.our_role_index = idx
                 break
 
         log.info('roles : %s, our_role : %s, role_index : %s' % (self.sm.get_roles(),
-                                                                 self.role,
+                                                                 our_role,
                                                                  self.our_role_index))
         assert self.our_role_index != -1
 
         # FINALLY : call the meta gaming stage on the player
-        self.player.reset(self)
-
         # note: on_meta_gaming must use self.match.get_current_state()
+        self.player.reset(self)
         self.player.on_meta_gaming(end_time)
 
     def apply_move(self, moves):
@@ -122,7 +142,14 @@ class Match:
 
         # fish tediously for move in available legals
         our_move = None
-        for role_index, move in enumerate(moves):
+        for role_index, gamemaster_move in enumerate(moves):
+            move = gamemaster_move
+            # map the gamemaster move
+            if self.propnet_symbol_mapping:
+                for k, v in self.propnet_symbol_mapping.items():
+                    move = replace_symbols(move, k, v)
+                log.debug("remapped move from '%s' -> '%s'" % (gamemaster_move, move))
+
             # find the move
             found = False
 
@@ -164,6 +191,13 @@ class Match:
         # in case player needs to cleanup some state
         self.player.on_apply_move(self.joint_move)
 
+    def legal_to_gamemaster_move(self, index):
+        m = self.sm.legal_to_move(self.our_role_index, index)
+        if self.propnet_symbol_mapping:
+            for k, v in self.propnet_symbol_mapping.items():
+                m = replace_symbols(m, v, k)
+        return m
+
     def do_play(self, move):
         enter_time = time.time()
         log.debug("do_play: %s" % (move,))
@@ -180,7 +214,7 @@ class Match:
             return "done"
 
         end_time = enter_time + self.move_time - CUSHION_TIME
-        choice = self.player.on_next_move(end_time)
+        legal_choice = self.player.on_next_move(end_time)
 
         # we have no idea what on_next_move() left the state machine.  So reverting it back to
         # correct state here.
@@ -188,18 +222,17 @@ class Match:
 
         # get possible possible legal moves and check 'move' is a valid
         ls = self.sm.get_legal_state(self.our_role_index)
-        legal_choices = [ls.get_legal(ii) for ii in range(ls.get_count())]
 
-        if choice not in legal_choices:
-            msg = "Choice was %d not in legal choices %s" % (choice, legal_choices)
+        # store last move (in our own mapping, *not* gamemaster)
+        self.last_played_move = self.sm.legal_to_move(self.our_role_index, legal_choice)
+
+        # check the move remaps and is a legal choice
+        move = self.legal_to_gamemaster_move(legal_choice)
+        legal_moves = [self.legal_to_gamemaster_move(ls.get_legal(ii)) for ii in range(ls.get_count())]
+        if move not in legal_moves:
+            msg = "Choice was %s not in legal choices %s" % (move, legal_moves)
             log.critical(msg)
             raise CriticalError(msg)
-
-        # ok we need to return a string
-        move = self.sm.legal_to_move(self.our_role_index, choice)
-
-        # store last move
-        self.last_played_move = move
 
         log.info("do_play sending move: %s" % move)
         return move
