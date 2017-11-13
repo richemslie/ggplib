@@ -599,11 +599,8 @@ def get_index(gdl_str, verbose=False):
 
     if verbose:
         print "Signature:"
-        print "Signature:"
-        print "Signature:"
-        print "Signature:"
-        print "Signature:"
         pprint.pprint(sig)
+
     hashed_sigs = []
     for s in sig.sigs:
         if verbose:
@@ -627,8 +624,28 @@ class GameInfo:
 
         # lazy loads
         self.propnet = None
+        self.sm = None
+
+    def lazy_load(self):
+        if self.propnet is None:
+            self.propnet = getpropnet.get_with_game(self.game)
+            # XXX self.sm = builder.build_sm(self.propnet)
+
+    def get_sm(self):
+        if self.sm is None:
+            self.sm = builder.build_sm(self.propnet)
+
+        # XXXtmp - use dupe
+        sm = self.sm
+        self.sm = None
+        return sm
+
 
 ###############################################################################
+
+class LookupFailed(Exception):
+    pass
+
 
 class Database:
     def __init__(self, directory):
@@ -640,7 +657,7 @@ class Database:
     def all_games(self):
         return self.game_mapping.keys()
 
-    def load(self):
+    def load(self, verbose=True):
         filenames = os.listdir(self.directory)
         mapping = {}
         for fn in sorted(filenames):
@@ -652,11 +669,12 @@ class Database:
                 continue
 
             game = fn.replace(".kif", "")
-            print "adding game:", game
+            if verbose:
+                log.verbose("adding game: %s" % game)
 
             # get the gdl
             file_path = os.path.join(self.directory, fn)
-            gdl_str = file(file_path).read()
+            gdl_str = open(file_path).read()
 
             idx, sigs = get_index(gdl_str, verbose=False)
 
@@ -666,7 +684,7 @@ class Database:
             # finally add a symbol map
             symbol_map = build_symbol_map(sigs, verbose=False)
             if symbol_map is None:
-                print "FAILED to add", fn
+                log.warning("FAILED to add: %s" % fn)
 
         # use the mapping, and remap to using idx.
         idx_2_infos = {}
@@ -677,7 +695,7 @@ class Database:
         for idx, infos in idx_2_infos.items():
             assert infos
             if len(infos) > 1:
-                print "DUPE GAMES:", idx, [game for game, _ in infos]
+                log.warning("DUPE GAMES: %s %s" % (idx, [game for game, _ in infos]))
                 raise Exception("Dupes not allowed in database")
 
             game, sigs = infos[0]
@@ -690,179 +708,117 @@ class Database:
             self.idx_mapping[idx] = info
             self.game_mapping[game] = info
 
+    def get_by_name(self, name):
+        if name not in self.game_mapping:
+            raise LookupFailed("Did not find game")
+        info = self.game_mapping[name]
+        info.lazy_load()
+        return info
+
     def lookup(self, gdl_str):
         idx, sig = get_index(gdl_str, verbose=False)
-        try:
-            info = self.idx_mapping[idx]
 
-            # create the symbol map for this gdl_str
-            symbol_map = build_symbol_map(sig, verbose=False)
+        if idx not in self.idx_mapping:
+            raise LookupFailed("Did not find game : %s" % idx)
+        info = self.idx_mapping[idx]
 
-            new_mapping = {}
+        # create the symbol map for this gdl_str
+        symbol_map = build_symbol_map(sig, verbose=False)
 
-            # remap the roles back
-            roles = info.sig.roles.items()
-            for ii in range(len(roles)):
-                match = "role%d" % ii
-                for k1, v1 in roles:
-                    if v1 == match:
-                        for k2, v2 in sig.roles.items():
-                            if v2 == match:
-                                new_mapping[k2] = k1
-                        break
+        new_mapping = {}
 
-            # remap the other symbols
-            for k1, v1 in info.symbol_map.items():
-                new_mapping[symbol_map[k1]] = v1
+        # remap the roles back
+        roles = info.sig.roles.items()
+        for ii in range(len(roles)):
+            match = "role%d" % ii
+            for k1, v1 in roles:
+                if v1 == match:
+                    for k2, v2 in sig.roles.items():
+                        if v2 == match:
+                            new_mapping[k2] = k1
+                    break
 
-            return info, new_mapping
+        # remap the other symbols
+        for k1, v1 in info.symbol_map.items():
+            new_mapping[symbol_map[k1]] = v1
 
-        except KeyError:
-            return None
+        # remove if the keys/values all the same in new_mapping
+        all_same = True
+        for k, v in new_mapping.items():
+            if k != v:
+                all_same = False
+                break
+        if all_same:
+            new_mapping = None
+
+        info.lazy_load()
+        return info, new_mapping
+
 
 ###############################################################################
 
-class LookupFailed(Exception):
-    pass
-
-
 the_database = None
 
+###############################################################################
+# The API:
 
-def get_database(db_path=None):
+def get_database(db_path=None, verbose=True):
     if db_path is None:
         from ggplib.propnet.getpropnet import rulesheet_dir
         db_path = rulesheet_dir
 
     global the_database
     if the_database is None:
-        print "Building the database"
+        if verbose:
+            log.info("Building the database")
         the_database = Database(db_path)
-        the_database.load()
+        the_database.load(verbose=verbose)
 
     return the_database
 
 
-# def ensure_propnet(info):
-#     if info.propnet is None:
-#         print "lookup: getting propnet for", info.game
-#         info.propnet = getpropnet.get_with_game(info.game)
-
-#     return info
-
-
-# def get_info_and_mapping(gdl_str):
-#     ''' mapping is a reverve mapping from gdl_str -> to db version '''
-#     db = get_database()
-#     try:
-#         res = db.lookup(gdl_str)
-#     except Exception:
-#         etype, value, tb = sys.exc_info()
-#         traceback.print_exc()
-#         res = None
-
-#     if res is None:
-#         raise LookupFailed("Did not find game")
-
-#     info, mapping = res
-#     ensure_propnet(info)
-#     return info, mapping
-
-
-# def get_propnet(gdl_str):
-#     db = get_database()
-#     info, _ = db.lookup(gdl_str)
-#     if info is None:
-#         raise LookupFailed("Did not find game")
-
-#     ensure_propnet(info)
-#     return info.propnet
-
-
-# def get_propnet_by_name(name):
-#     db = get_database()
-#     if name not in db.game_mapping:
-#         raise LookupFailed("Did not find game")
-
-#     info = db.game_mapping[name]
-#     ensure_propnet(info)
-#     return info.propnet
-
-
-# def get_gdl_for_game(game, factory=None):
-#     from ggplib.propnet.getpropnet import rulesheet_dir
-#     filename = os.path.join(rulesheet_dir, game + ".kif")
-#     gdl_str = file(filename).read()
-
-#     if factory is None:
-#         factory = SymbolFactory()
-#     gdl = list(factory.to_symbols(gdl_str))
-#     return gdl
-
-
 def get_all_game_names():
-    for fn in os.listdir(getpropnet.rulesheet_dir):
-        if fn.startswith("tmp") or not fn.endswith(".kif"):
-            continue
-
-        yield fn.replace(".kif", "")
-
-###############################################################################
-###############################################################################
-###############################################################################
-
-# def get_basic_propnet_and_mapping(gdl, match_id, end_time):
-#     # XXX do something with end_time
-#     from galvanise.propnet import lookup
-#     from galvanise.propnet import getpropnet
-
-#     # get the propnet, first try by looking it up. Otherwise just build a temporary file.
-#     try:
-#         lines = []
-#         for s in gdl:
-#             lines.append(str(s))
-#         gdl_str = "\n".join(lines)
-#         info, mapping = lookup.get_info_and_mapping(gdl_str)
-
-#         # set the reverse mapping to look things up
-
-#         return info.propnet, mapping, info.game
-
-#     except lookup.LookupFailed, exc:
-#         # XXX - builder should not build propnets...
-#         log.warning("Failed to lookup gdl %s" % exc)
-#         log.warning("Building from scratch")
-#         return getpropnet.get_with_gdl(gdl, match_id), None, "unknown"
+    return get_database().all_games
 
 
-def get_game(gdl, match_id, end_time):
+def by_name(name, build_sm=True):
+    db = get_database(verbose=False)
+    info = db.get_by_name(name)
+    sm = builder.build_sm(info.propnet) if build_sm else None
+    return info.propnet, sm
+
+
+def by_gdl(gdl, build_sm=True, end_time=-1):
     # XXX ignoring end_time
     try:
-        lines = []
-        for s in gdl:
-            lines.append(str(s))
-        gdl_str = "\n".join(lines)
+        gdl_str = gdl
+        if not isinstance(gdl, str):
+            lines = []
+            for s in gdl:
+                lines.append(str(s))
+            gdl_str = "\n".join(lines)
 
         db = get_database()
         try:
             info, mapping = db.lookup(gdl_str)
+
         except Exception:
             etype, value, tb = sys.exc_info()
             traceback.print_exc()
             raise LookupFailed("Did not find game")
 
-        # lazy loads the propnet
-        if info.propnet is None:
-            log.info("lookup: getting propnet for '%s'" % info.game)
-            info.propnet = getpropnet.get_with_game(info.game)
-
-        sm = builder.build_standard_sm(info.propnet)
+        # XXX this will change
+        sm = info.get_sm() if build_sm else None
         return info.propnet, mapping, sm, info.game
 
     except LookupFailed as exc:
+        # creates temporary files
         log.error("Lookup failed: %s" % exc)
-        propnet = getpropnet.get_with_gdl(gdl, match_id)
+        propnet = getpropnet.get_with_gdl(gdl, "unknown_game")
         propnet_symbol_mapping = None
-        sm = builder.build_standard_sm(propnet)
+        sm = builder.build_sm(propnet)
         game_name = "unknown"
+
+        # XXX this will change
+        sm = builder.build_sm(propnet) if build_sm else None
         return propnet, propnet_symbol_mapping, sm, game_name
