@@ -1,15 +1,15 @@
 P=$GGPLIB_PATH
 
-$P/bin/start_perf_test.sh $P/rulesheets/ticTacToe.kif
+$P/bin/start_perf_test.sh ticTacToe
 sleep 2
-$P/bin/start_perf_test.sh $P/rulesheets/connectFour.kif
+$P/bin/start_perf_test.sh connectFour
 sleep 2
-$P/bin/start_perf_test.sh $P/rulesheets/breakthrough.kif
+$P/bin/start_perf_test.sh breakthrough
 sleep 2
-$P/bin/start_perf_test.sh $P/rulesheets/speedChess.kif
+$P/bin/start_perf_test.sh speedChess
 sleep 2
-$P/bin/start_perf_test.sh $P/rulesheets/reversi.kif
+$P/bin/start_perf_test.sh reversi
 sleep 2
-$P/bin/start_perf_test.sh $P/rulesheets/hex.kif
+$P/bin/start_perf_test.sh hex
 sleep 2
 

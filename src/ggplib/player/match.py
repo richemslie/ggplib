@@ -73,7 +73,7 @@ class Match:
         (self.propnet,
          self.propnet_symbol_mapping,
          self.sm,
-         self.game_name) = lookup.get_game(self.gdl, self.match_id, end_time)
+         self.game_name) = lookup.by_gdl(self.gdl, end_time)
 
         self.sm.reset()
         log.debug("Got state machine %s for game '%s' and match_id: %s" % (self.sm,
@@ -142,6 +142,7 @@ class Match:
 
         # fish tediously for move in available legals
         our_move = None
+        preserve_move = []
         for role_index, gamemaster_move in enumerate(moves):
             move = gamemaster_move
             # map the gamemaster move
@@ -149,6 +150,8 @@ class Match:
                 for k, v in self.propnet_symbol_mapping.items():
                     move = replace_symbols(move, k, v)
                 log.debug("remapped move from '%s' -> '%s'" % (gamemaster_move, move))
+
+            preserve_move.append(move)
 
             # find the move
             found = False
@@ -185,7 +188,7 @@ class Match:
         self.sm.update_bases(new_base_state)
 
         # save for next time / prospserity
-        self.moves.append(moves)
+        self.moves.append(preserve_move)
         self.states.append(new_base_state)
 
         # in case player needs to cleanup some state
@@ -249,7 +252,16 @@ class Match:
                                        self.sm.get_goal_value(idx)))
 
         log.info("Moves:")
-        log.info(pprint.pformat(self.moves))
+        buf = [""]
+        for move in self.moves:
+            if isinstance(move, str):
+                move_str = move
+            else:
+                move_str = " ".join(str(t) for t in move)
+
+            buf.append("\t(" + move_str + ")")
+
+        log.info("\n".join(buf))
         self.cleanup()
         log.info("DONE!")
 

@@ -266,7 +266,6 @@ class DependencyComponent:
 
 ###############################################################################
 
-
 def get_controls(propnet, verbose=False):
     controls = {}
     # one time pass looking for controls

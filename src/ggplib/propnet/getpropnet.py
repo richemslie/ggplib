@@ -104,6 +104,6 @@ def get_with_gdl(gdl, name_hint=""):
     os.remove(fn)
     os.remove(props_file)
     for f in glob.glob(os.path.join(props_dir, "__pycache__", basename) + '*.pyc'):
-        os.remove(f)
+        os.remove(str(f))
 
     return propnet

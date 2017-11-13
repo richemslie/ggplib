@@ -9,10 +9,9 @@ from ggplib.player.match import Match
 
 
 class GameMaster:
-    def __init__(self, game):
-        filename = getpropnet.get_filename_for_game(game)
+    def __init__(self, gdl_str):
         self.symbol_factory = SymbolFactory()
-        self.gdl = tuple(self.symbol_factory.to_symbols(open(filename).read()))
+        self.gdl = tuple(self.symbol_factory.to_symbols(gdl_str))
 
         self.players = []
 
@@ -21,7 +20,7 @@ class GameMaster:
         # updated after game is finished
         self.scores = {}
 
-        self.match_id = "tmp_%s_a_match_id_%d" % (game, random.randint(0, 100000))
+        self.match_id = "a_match_id_%d" % (random.randint(0, 100000))
         self.propnet = getpropnet.get_with_gdl(self.gdl, self.match_id)
         self.sm = FwdStateMachine(self.propnet)
 

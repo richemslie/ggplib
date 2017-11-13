@@ -1,7 +1,7 @@
 from ggplib.player import get
 from ggplib.player.gamemaster import GameMaster
-from ggplib.db.lookup import get_database
-
+from ggplib.db import lookup
+from ggplib.propnet import getpropnet
 
 _setup_once = False
 def setup():
@@ -9,18 +9,26 @@ def setup():
     if not _setup_once:
         _setup_once = True
 
-        # pre-initialise database
-        get_database()
-
         from ggplib import interface
         interface.initialise_k273(1)
 
         import ggplib.util.log
         ggplib.util.log.initialise()
 
+        # pre-initialise database - used in match for remapping
+        lookup.get_database()
+
+
+def get_game(game, replace_map=None):
+    filename = getpropnet.get_filename_for_game(game)
+    contents = open(filename).read()
+    if replace_map:
+        for k, v in replace_map.items():
+            contents.replace(k, v)
+    return contents
 
 def test_tictactoe_play():
-    gm = GameMaster("ticTacToe")
+    gm = GameMaster(get_game("ticTacToe"))
 
     # add two python players
     gm.add_player(get.get_player("pyrandom"), "xplayer")
@@ -33,8 +41,29 @@ def test_tictactoe_play():
     assert sum(gm.scores.values()) == 100
     assert 5 <= gm.depth <= 9
 
+
+def test_tictactoe_play_test_db_lookup():
+    game_gdl_str = get_game("ticTacToe", dict(mark="kram",
+                                              noop="notamove",
+                                              cell="bell",
+                                              oplayer="doobie"))
+
+    gm = GameMaster(game_gdl_str)
+
+    # add two python players
+    gm.add_player(get.get_player("pyrandom"), "xplayer")
+    gm.add_player(get.get_player("pylegal"), "oplayer")
+
+    gm.start()
+    gm.play_to_end()
+
+    # check scores/depth make some sense
+    assert sum(gm.scores.values()) == 100
+    assert 5 <= gm.depth <= 9
+
+
 def test_tictactoe_cpp_play():
-    gm = GameMaster("ticTacToe")
+    gm = GameMaster(get_game("ticTacToe"))
 
     # add two c++ players
     gm.add_player(get.get_player("random"), "xplayer")
@@ -48,7 +77,7 @@ def test_tictactoe_cpp_play():
     assert 5 <= gm.depth <= 9
 
 def test_tictactoe_take_win():
-    gm = GameMaster("ticTacToe")
+    gm = GameMaster(get_game("ticTacToe"))
 
     # add two c++ players
     gm.add_player(get.get_player("ggtest1"), "xplayer")
@@ -81,7 +110,7 @@ def test_tictactoe_take_win():
     assert gm.depth == 1
 
 def test_hex():
-    gm = GameMaster("hex")
+    gm = GameMaster(get_game("hex"))
 
     # add two c++ players
     gm.add_player(get.get_player("random"), "red")
@@ -97,3 +126,39 @@ def test_hex():
     # check scores/depth make some sense
     assert sum(gm.scores.values()) == 100
     assert gm.depth >= 10
+
+
+def test_not_in_db():
+    some_simple_game = """
+  (role white)
+  (role black)
+
+  (init o1)
+
+  (legal white a)
+  (legal white b)
+  (legal black a)
+
+  (<= (next o2) (does white a) (true o1))
+  (<= (next o3) (does white b) (true o1))
+
+  (<= (goal white 0) (true o1))
+  (<= (goal white 10) (true o2))
+  (<= (goal white 90) (true o3))
+
+  (<= (goal black 0) (true o1))
+  (<= (goal black 90) (true o2))
+  (<= (goal black 10) (true o3))
+
+  (<= terminal (true o2))
+  (<= terminal (true o3))
+    """
+
+    gm = GameMaster(some_simple_game)
+
+    # add two python players
+    gm.add_player(get.get_player("pyrandom"), "black")
+    gm.add_player(get.get_player("ggtest1"), "white")
+
+    gm.start()
+    gm.play_to_end()

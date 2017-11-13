@@ -33,7 +33,7 @@ def get_lib():
     def get_lines(filename):
         # take subset of file (since it is c++, and want only the c portion
         emit = False
-        for line in file(filename):
+        for line in open(filename):
             if "CFFI START INCLUDE" in line:
                 emit = True
             elif "CFFI END INCLUDE" in line:
