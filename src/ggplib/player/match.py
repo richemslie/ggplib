@@ -108,11 +108,10 @@ class Match:
             our_role = self.role
 
         self.our_mapped_role = our_role
-        for idx, r in enumerate(self.sm.get_roles()):
-            if r == our_role:
-                self.our_role_index = idx
-                break
+        if our_role not in self.sm.get_roles():
+            raise BadGame("Our role not found. %s in %s", (our_role, self.sm.get_roles()))
 
+        self.our_role_index = self.sm.get_roles().index(our_role)
         log.info('roles : %s, our_role : %s, role_index : %s' % (self.sm.get_roles(),
                                                                  our_role,
                                                                  self.our_role_index))

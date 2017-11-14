@@ -114,19 +114,20 @@ def test_tictactoe_take_win():
     assert gm.depth == 1
 
 
-def test_hex():
-    gm = GameMaster(get_game("hex"))
+def test_breakthrough():
+    ' mcs player vs ggtest1 '
+    gm = GameMaster(get_game("breakthrough"))
 
     # add two c++ players
-    gm.add_player(get.get_player("random"), "red")
-    gm.add_player(get.get_player("simplemcts"), "blue")
+    gm.add_player(get.get_player("pymcs"), "white")
+    gm.add_player(get.get_player("ggtest1"), "black")
 
-    gm.start(meta_time=30, move_time=3)
+    gm.start(meta_time=30, move_time=5)
     gm.play_to_end()
 
-    # hopefully simplemcts wins
-    assert gm.scores["red"] == 0
-    assert gm.scores["blue"] == 100
+    # hopefully simplemcts wins!  Not a great test.
+    assert gm.scores["white"] == 0
+    assert gm.scores["black"] == 100
 
     # check scores/depth make some sense
     assert sum(gm.scores.values()) == 100
