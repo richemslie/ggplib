@@ -342,7 +342,7 @@ LegalState* StateMachine::getLegalState(int role_index) {
     return &role->legal_state;
 }
 
-const char* StateMachine::getStateString(int index) const {
+const char* StateMachine::getGDL(int index) const {
     MetaComponentInfo* info = this->metas + index;
     return info->gdl.c_str();
 }

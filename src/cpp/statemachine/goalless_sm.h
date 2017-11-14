@@ -51,8 +51,8 @@ namespace GGPLib {
             return this->goalless_sm->getLegalState(role_index);
         }
 
-        const char* getStateString(int index) const {
-            return this->goalless_sm->getStateString(index);
+        const char* getGDL(int index) const {
+            return this->goalless_sm->getGDL(index);
         }
 
         const char* legalToMove(int role_index, int choice) const {
