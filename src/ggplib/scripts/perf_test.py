@@ -14,12 +14,13 @@ VERSION = "ggplib_v0.9999"
 
 def go(sm, seconds_to_run):
     log.verbose("running depth charges for %s seconds %s" % (seconds_to_run, "(in c)" if rollouts_in_c else ""))
-    role_count = len(sm.get_roles())
 
     if rollouts_in_c:
         return interface.depth_charge(sm, seconds_to_run)
 
     else:
+        role_count = len(sm.get_roles())
+
         # cache some objects
         joint_move = sm.get_joint_move()
         base_state = sm.new_base_state()
@@ -108,7 +109,7 @@ def main_3(game_file, output_file, seconds_to_run):
 
 
 def main_2(game_name, seconds_to_run):
-    _, sm = lookup.by_name(game_name)
+    sm = lookup.by_name(game_name)
     msecs_taken, rollouts, num_state_changes = go(sm, seconds_to_run)
 
     log.info("====================================================")
