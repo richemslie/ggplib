@@ -1,5 +1,5 @@
 
-INCLUDE_PATH = ./
+INCLUDE_PATH = -I ./ -I /usr/include/jsoncpp
 LIB_PATH = ./
 
 AR = ar
@@ -31,10 +31,10 @@ fresh : clean all
 
 # Compiles
 libggplib_cpp.so: $(OBJS)
-	$(CPP) -shared $(CORE_OBJS) $(LDFLAGS) -L $(LIB_PATH) -pthread -lrt -o libggplib_cpp.so
+	$(CPP) -shared $(CORE_OBJS) $(LDFLAGS) -L $(LIB_PATH) -pthread -lrt -ljsoncpp -o libggplib_cpp.so
 
 %.o : %.cpp
-	$(CPP) -I $(INCLUDE_PATH) $(CFLAGS) -c -o $@ $<
+	$(CPP) $(INCLUDE_PATH) $(CFLAGS) -c -o $@ $<
 
 # Cleans
 clean :
