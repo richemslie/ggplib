@@ -61,7 +61,7 @@ void BaseState__assign(void* _bs, void* _from) {
     bs->assign(from);
 }
 
-int BaseState__len(void* _bs, void* _from) {
+int BaseState__len(void* _bs) {
     GGPLib::BaseState* bs = static_cast<GGPLib::BaseState*> (_bs);
     return bs->size;
 }
@@ -426,7 +426,6 @@ void* createStateMachineFromJSON(const char* msg, int size) {
         GGPLib::BaseState* bs = sm->newBaseState();
         int index = 0;
         for (Json::Value& v : root["initial_state"]) {
-            K273::l_info("%d : %d -> %s", index, v.asInt(), sm->getGDL(index));
             bs->set(index, v.asInt());
             index++;
         }
