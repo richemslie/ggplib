@@ -77,6 +77,9 @@ class BaseState:
     def assign(self, other):
         lib.BaseState__assign(self.c_base_state, other.c_base_state)
 
+    def len(self):
+        return lib.BaseState__len(self.c_base_state)
+
     def __eq__(self, other):
         return self.equals(other)
 
@@ -109,9 +112,20 @@ class JointMove:
 
 
 class StateMachine:
-    def __init__(self, role_count, num_bases, num_transitions, num_components, num_ouputs, topological_size):
-        self.c_statemachine = lib.createStateMachine(role_count, num_bases,
-                                                     num_transitions, num_components, num_ouputs, topological_size)
+    def __init__(self, c_statemachine, initial_base_state, roles):
+        self.c_statemachine = c_statemachine
+        self.initial_base_state = initial_base_state
+        self.roles = roles
+
+        # initial state has to be set here on c_statemachine
+        self.reset()
+
+    def dupe(self):
+        return StateMachine(lib.StateMachine__dupe(self.c_statemachine),
+                            self.initial_base_state, self.roles)
+
+    def get_initial_state(self):
+        return self.initial_base_state
 
     def get_roles(self):
         return self.roles
@@ -119,29 +133,15 @@ class StateMachine:
     def new_base_state(self):
         return BaseState(lib.StateMachine__newBaseState(self.c_statemachine))
 
-    def set_role(self, *args):
-        lib.StateMachine__setRole(self.c_statemachine, *args)
-
-    def set_component(self, *args):
-        lib.StateMachine__setComponent(self.c_statemachine, *args)
-
-    def set_output(self, *args):
-        lib.StateMachine__setOutput(self.c_statemachine, *args)
-
-    def record_finalise(self, *args):
-        lib.StateMachine__recordFinalise(self.c_statemachine, *args)
-
-    def set_meta_component(self, cid, component_type, gdl, move, goal_value):
-        lib.StateMachine__setMetaComponent(self.c_statemachine, cid, component_type, gdl, move, goal_value)
-
-    def set_initial_state(self, base_state):
-        lib.StateMachine__setInitialState(self.c_statemachine, base_state.c_base_state)
-
     def update_bases(self, base_state):
         lib.StateMachine__updateBases(self.c_statemachine, base_state.c_base_state)
 
     def get_legal_state(self, role_index):
         return LegalState(lib.StateMachine__getLegalState(self.c_statemachine, role_index))
+
+    def get_gdl(self, index):
+        c_charstar = lib.StateMachine__getGDL(self.c_statemachine, index)
+        return ffi.string(c_charstar)
 
     def legal_to_move(self, role_index, choice):
         # I seem to have a habit of calling role_index/choice in the wrong order.  Hence the assert
@@ -170,57 +170,15 @@ class StateMachine:
         lib.StateMachine__getCurrentState(self.c_statemachine, bs.c_base_state)
         return bs
 
-    def depth_charge(self, seconds):
-        return lib.StateMachine__depthCharge(self.c_statemachine, seconds)
-
-    def depth_charge_threaded(self, seconds, num_workers):
-        return lib.StateMachine__depthChargeThreaded(self.c_statemachine, seconds, num_workers)
-
-    def get_initial_state(self):
-        return self.initial_base_state
+    def basestate_to_str(self, bs):
+        ' helper '
+        return " ".join([self.get_gdl(i) for i in range(bs.len()) if bs.get(i)])
 
 
-class GoallessStateMachine(StateMachine):
-    def __init__(self, role_count, goalless_sm, goal_sm):
-        self.goalless_sm = goalless_sm
-        self.goal_sm = goal_sm
-        self.c_statemachine = lib.createGoallessStateMachine(role_count,
-                                                             goalless_sm.c_statemachine,
-                                                             goal_sm.c_statemachine)
-
-    def get_roles(self):
-        return self.goal_sm.roles
-
-    def get_initial_state(self):
-        return self.goal_sm.initial_base_state
-
-
-class CombinedStateMachine(StateMachine):
-    def __init__(self, goal_sm, controls):
-        self.goal_sm = goal_sm
-        self.controls = controls
-        self.c_statemachine = lib.createCombinedStateMachine(len(controls))
-        if goal_sm is not None:
-            lib.CombinedStateMachine__setGoalStateMachine(self.c_statemachine, goal_sm.c_statemachine)
-        for idx, (control_cid, sm) in enumerate(controls):
-            lib.CombinedStateMachine__setControlStateMachine(self.c_statemachine,
-                                                             idx, control_cid, sm.c_statemachine)
-        # needs to be called to ensure current is set
-        self.reset()
-
-    def get_roles(self):
-        sm = self.goal_sm
-        if sm is None:
-            sm = self.controls[0][1]
-
-        return sm.roles
-
-    def get_initial_state(self):
-        sm = self.goal_sm
-        if sm is None:
-            sm = self.controls[0][1]
-
-        return sm.initial_base_state
+def dealloc_statemachine(sm):
+    ' called to explicitly delete the underlying statemachine '
+    lib.StateMachine__delete(sm.c_statemachine)
+    sm.c_statemachine = None
 
 
 class CppProxyPlayer:
@@ -287,6 +245,11 @@ def depth_charge(sm, seconds):
     lib.DepthChargeTest__delete(c_obj)
 
     return msecs, rollouts, num_state_changes
+
+
+def create_statemachine_from_json(buf):
+    return lib.createStateMachineFromJSON(buf, len(buf))
+
 
 ###############################################################################
 
