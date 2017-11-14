@@ -58,7 +58,7 @@ class Match:
         self.player = player
 
         # set in do_start
-        self.propnet_symbol_mapping = None
+        self.gdl_symbol_mapping = None
         self.sm = None
         self.game_name = None
 
@@ -68,14 +68,14 @@ class Match:
 
     def do_start(self, initial_basestate=None):
         ''' Optional initial_basestate.  Used mostly for testing. If none will use the inital state
-            of propnet. '''
+            of state machine. '''
 
         enter_time = time.time()
         end_time = enter_time + self.meta_time - CUSHION_TIME
 
         log.debug("Match.do_start(), time = %.1f" % (end_time - enter_time))
 
-        (self.propnet_symbol_mapping,
+        (self.gdl_symbol_mapping,
          self.sm,
          self.game_name) = lookup.by_gdl(self.gdl, end_time)
 
@@ -102,8 +102,8 @@ class Match:
         self.joint_move = self.sm.get_joint_move()
 
         # set our role index
-        if self.propnet_symbol_mapping:
-            our_role = self.propnet_symbol_mapping[self.role]
+        if self.gdl_symbol_mapping:
+            our_role = self.gdl_symbol_mapping[self.role]
         else:
             our_role = self.role
 
@@ -134,8 +134,8 @@ class Match:
         for role_index, gamemaster_move in enumerate(moves):
             move = gamemaster_move
             # map the gamemaster move
-            if self.propnet_symbol_mapping:
-                for k, v in self.propnet_symbol_mapping.items():
+            if self.gdl_symbol_mapping:
+                for k, v in self.gdl_symbol_mapping.items():
                     move = replace_symbols(move, k, v)
                 log.debug("remapped move from '%s' -> '%s'" % (gamemaster_move, move))
 
@@ -184,8 +184,8 @@ class Match:
 
     def legal_to_gamemaster_move(self, index):
         m = self.sm.legal_to_move(self.our_role_index, index)
-        if self.propnet_symbol_mapping:
-            for k, v in self.propnet_symbol_mapping.items():
+        if self.gdl_symbol_mapping:
+            for k, v in self.gdl_symbol_mapping.items():
                 m = replace_symbols(m, v, k)
         return m
 

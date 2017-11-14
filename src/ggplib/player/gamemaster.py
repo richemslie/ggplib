@@ -60,7 +60,7 @@ class GameMaster:
             # check the game isn't finished
             assert not self.sm.is_terminal()
         else:
-            # set propnet to initial state...
+            # reset state machine, returns it to initial state.
             self.sm.reset()
 
         player_matches = []
