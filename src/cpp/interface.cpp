@@ -61,6 +61,11 @@ void BaseState__assign(void* _bs, void* _from) {
     bs->assign(from);
 }
 
+int BaseState__len(void* _bs, void* _from) {
+    GGPLib::BaseState* bs = static_cast<GGPLib::BaseState*> (_bs);
+    return bs->size;
+}
+
 void BaseState__deleteBaseState(void* _bs) {
     GGPLib::BaseState* bs = static_cast<GGPLib::BaseState*> (_bs);
     ::free(bs);
@@ -79,6 +84,17 @@ void* createGoallessStateMachine(int role_count, void* _sm1, void* _sm2) {
 
     GGPLib::StateMachineInterface* sm = new GGPLib::GoalLessStateMachine(role_count, sm1, sm2);
     return (void *) sm;
+}
+
+void* StateMachine__dupe(void* _sm) {
+    GGPLib::StateMachine* sm = static_cast<GGPLib::StateMachine*> (_sm);
+    return (void *) sm->dupe();
+}
+
+void StateMachine__delete(void* _sm) {
+    GGPLib::StateMachine* sm = static_cast<GGPLib::StateMachine*> (_sm);
+    K273::l_verbose("Deleting statemachine %p", _sm);
+    delete sm;
 }
 
 void StateMachine__setRole(void* _sm, int role_index, const char* name, int input_start_index, int legal_start_index, int goal_start_index, int num_inputs_legals, int num_goals) {
@@ -134,6 +150,11 @@ void StateMachine__updateBases(void* _sm, void* _bs) {
 void* StateMachine__getLegalState(void* _sm, int role_index) {
     GGPLib::StateMachineInterface* sm = static_cast<GGPLib::StateMachineInterface*> (_sm);
     return (void *) sm->getLegalState(role_index);
+}
+
+const char* StateMachine__getGDL(void* _sm, int index) {
+    GGPLib::StateMachineInterface* sm = static_cast<GGPLib::StateMachineInterface*> (_sm);
+    return sm->getGDL(index);
 }
 
 const char* StateMachine__legalToMove(void* _sm, int role_index, int choice) {
@@ -349,4 +370,76 @@ void Log_error(const char* msg) {
 
 void Log_critical(const char* msg) {
     K273::l_critical("%s", msg);
+}
+
+#include <json/json.h>
+#include <json/reader.h>
+
+void* createStateMachineFromJSON(const char* msg, int size) {
+    Json::Value root;
+    Json::Reader reader;
+    reader.parse(msg, msg+size, root);
+
+    try {
+        const Json::Value& d = root["create"];
+
+        GGPLib::StateMachine* sm = new GGPLib::StateMachine(d["role_count"].asInt(),
+                                                            d["num_bases"].asInt(),
+                                                            d["num_transitions"].asInt(),
+                                                            d["num_components"].asInt(),
+                                                            d["num_outputs"].asInt(),
+                                                            d["topological_size"].asInt());
+
+
+        for (Json::Value& r : root["roles"]) {
+            sm->setRole(r["role_index"].asInt(),
+                        r["name"].asString().c_str(),
+                        r["input_start_index"].asInt(),
+                        r["legal_start_index"].asInt(),
+                        r["goal_start_index"].asInt(),
+                        r["num_inputs_legals"].asInt(),
+                        r["num_goals"].asInt());
+        }
+
+        for (Json::Value& c : root["components"]) {
+            sm->setComponent(c[0].asInt(), c[1].asInt(), c[2].asInt(), c[3].asInt(),
+                             c[4].asInt(), c[5].asInt(), c[6].asInt(), c[7].asInt());
+        }
+
+        for (Json::Value& o : root["outputs"]) {
+            sm->setOutput(o[0].asInt(), o[1].asInt());
+        }
+
+        for (Json::Value& m : root["metas"]) {
+            sm->setMetaInformation(m["component_id"].asInt(),
+                                   m["typename"].asString(),
+                                   m["gdl_str"].asString(),
+                                   m["move"].asString(),
+                                   m["goal_values"].asInt());
+        }
+
+        K273::l_info("control_flows %d, terminal_index %d",
+                     root["control_flows"].asInt(), root["terminal_index"].asInt());
+        sm->recordFinalise(root["control_flows"].asInt(), root["terminal_index"].asInt());
+
+        // initial_state
+        GGPLib::BaseState* bs = sm->newBaseState();
+        int index = 0;
+        for (Json::Value& v : root["initial_state"]) {
+            K273::l_info("%d : %d -> %s", index, v.asInt(), sm->getGDL(index));
+            bs->set(index, v.asInt());
+            index++;
+        }
+
+        sm->setInitialState(bs);
+
+        K273::l_info("Built sm via JSON");
+
+        return (void *) sm;
+
+    } catch (const K273::Assertion &exc) {
+        fprintf(stderr, "Assertion : %s\n", exc.getMessage().c_str());
+        fprintf(stderr, "Stacktrace :\n%s\n", exc.getStacktrace().c_str());
+        return nullptr;
+    }
 }

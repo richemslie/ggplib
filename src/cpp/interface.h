@@ -27,11 +27,18 @@ extern "C" {
     long BaseState__hashCode(BaseState*);
     boolean BaseState__equals(BaseState*, BaseState* other);
     void BaseState__assign(BaseState*, BaseState* from);
+    int BaseState__len(BaseState*);
     void BaseState__deleteBaseState(BaseState*);
 
     // Create a state machine
     StateMachine* createStateMachine(int role_count, int num_bases, int num_transitions, int num_components, int num_ouputs, int topological_size);
     StateMachine* createGoallessStateMachine(int role_count, StateMachine*, StateMachine*);
+
+    // Duplicate a statemachine
+    StateMachine* StateMachine__dupe(StateMachine*);
+
+    // Delete underlying statemachine
+    void StateMachine__delete(StateMachine*);
 
     // StateMachine initialisation:
 
@@ -51,6 +58,8 @@ extern "C" {
 
     void StateMachine__updateBases(StateMachine*, BaseState* bs);
     LegalState* StateMachine__getLegalState(StateMachine*, int role_index);
+
+    const char* StateMachine__getGDL(StateMachine*, int index);
     const char* StateMachine__legalToMove(StateMachine*, int role_index, int choice);
 
     JointMove* StateMachine__getJointMove(StateMachine*);
@@ -107,6 +116,8 @@ extern "C" {
     void Log_warning(const char*);
     void Log_error(const char*);
     void Log_critical(const char*);
+
+    StateMachine* createStateMachineFromJSON(const char* msg, int size);
 
     // CFFI END INCLUDE
 
