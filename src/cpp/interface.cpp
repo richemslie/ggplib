@@ -415,7 +415,7 @@ void* createStateMachineFromJSON(const char* msg, int size) {
                                    m["typename"].asString(),
                                    m["gdl_str"].asString(),
                                    m["move"].asString(),
-                                   m["goal_values"].asInt());
+                                   m["goal_value"].asInt());
         }
 
         K273::l_info("control_flows %d, terminal_index %d",
@@ -431,7 +431,7 @@ void* createStateMachineFromJSON(const char* msg, int size) {
         }
 
         sm->setInitialState(bs);
-
+        sm->reset();
         K273::l_info("Built sm via JSON");
 
         return (void *) sm;
