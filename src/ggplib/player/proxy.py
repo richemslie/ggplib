@@ -3,7 +3,6 @@ import random
 
 from ggplib.util import log
 from ggplib.player.base import MatchPlayer
-from ggplib.statemachine import builder
 from ggplib import interface
 
 
@@ -72,10 +71,7 @@ class CppPlayer(MatchPlayer):
     def on_meta_gaming(self, finish_time):
         log.info("%s meta Gaming: match: %s" % (self.name, self.match.match_id))
 
-        # try building a combined state machine (this needs work determining which is fastest etc)
-        self.sm = builder.build_combined_state_machine(self.match.propnet)
-        if self.sm is None:
-            self.sm = builder.build_goaless_sm(self.match.propnet)
+        self.sm = self.match.sm.dupe()
 
         self.proxy = interface.CppProxyPlayer(self.meta_create_player())
 

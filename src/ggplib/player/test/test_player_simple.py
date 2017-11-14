@@ -1,9 +1,11 @@
 from ggplib.player import get
 from ggplib.player.gamemaster import GameMaster
-from ggplib.db import lookup
-from ggplib.propnet import getpropnet
+from ggplib.propnet.getpropnet import get_filename_for_game
+from ggplib.db.lookup import get_database
 
 _setup_once = False
+
+
 def setup():
     global _setup_once
     if not _setup_once:
@@ -16,16 +18,17 @@ def setup():
         ggplib.util.log.initialise()
 
         # pre-initialise database - used in match for remapping
-        lookup.get_database()
+        get_database()
 
 
 def get_game(game, replace_map=None):
-    filename = getpropnet.get_filename_for_game(game)
+    filename = get_filename_for_game(game)
     contents = open(filename).read()
     if replace_map:
         for k, v in replace_map.items():
             contents.replace(k, v)
     return contents
+
 
 def test_tictactoe_play():
     gm = GameMaster(get_game("ticTacToe"))
@@ -76,6 +79,7 @@ def test_tictactoe_cpp_play():
     assert sum(gm.scores.values()) == 100
     assert 5 <= gm.depth <= 9
 
+
 def test_tictactoe_take_win():
     gm = GameMaster(get_game("ticTacToe"))
 
@@ -95,7 +99,7 @@ def test_tictactoe_take_win():
     (true (cell 1 2 b))
     (true (cell 1 1 b)) '''
 
-    gm.start(start_state=gm.convert_to_base_state(str_state))
+    gm.start(initial_basestate=gm.convert_to_base_state(str_state))
 
     # play a single move - should take win
     move = gm.play_single_move()
@@ -108,6 +112,7 @@ def test_tictactoe_take_win():
     assert gm.scores['xplayer'] == 100
     assert gm.scores['oplayer'] == 0
     assert gm.depth == 1
+
 
 def test_hex():
     gm = GameMaster(get_game("hex"))

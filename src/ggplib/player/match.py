@@ -1,6 +1,5 @@
 import sys
 import time
-import pprint
 import traceback
 
 from ggplib.util import log
@@ -52,26 +51,31 @@ class Match:
         self.moves = []
         self.states = []
 
+        # stores the last played move, to check the gamemaster returns the same move
         self.last_played_move = None
 
         self.joint_move = None
         self.player = player
 
+        # set in do_start
+        self.propnet_symbol_mapping = None
+        self.sm = None
+        self.game_name = None
+
     def get_current_state(self):
         # do not change this
         return self.states[-1]
 
-    def do_start(self, start_state=None):
-        ''' Optional start state.  Used mostly for testing. If none will use the inital_state of
-            propnet. '''
+    def do_start(self, initial_basestate=None):
+        ''' Optional initial_basestate.  Used mostly for testing. If none will use the inital state
+            of propnet. '''
 
         enter_time = time.time()
         end_time = enter_time + self.meta_time - CUSHION_TIME
 
         log.debug("Match.do_start(), time = %.1f" % (end_time - enter_time))
 
-        (self.propnet,
-         self.propnet_symbol_mapping,
+        (self.propnet_symbol_mapping,
          self.sm,
          self.game_name) = lookup.by_gdl(self.gdl, end_time)
 
@@ -80,34 +84,19 @@ class Match:
                                                                            self.game_name,
                                                                            self.match_id))
 
-        if start_state:
-            # convert to base state?
-            if isinstance(start_state, list):
-                base_state = self.sm.new_base_state()
-                for index, value in enumerate(start_state):
-                    base_state.set(index, value)
-            else:
-                base_state = start_state
-
-            str_state = self.propnet.to_gdl([base_state.get(i)
-                                             for i in range(len(self.propnet.base_propositions))])
-
-            # XXX need a dump function...  should be one somewhere
-            log.debug("The start state is %s" % str_state)
+        if initial_basestate:
+            log.debug("The start state is %s" % self.sm.basestate_to_str(initial_basestate))
 
             # update the statemachine
-            self.sm.update_bases(base_state)
+            self.sm.update_bases(initial_basestate)
 
             # check it is not actually finished
             assert not self.sm.is_terminal()
 
-            # this is our inital_state
-            initial_state = base_state
-
         else:
-            initial_state = self.sm.get_initial_state()
+            initial_basestate = self.sm.get_initial_state()
 
-        self.states.append(initial_state)
+        self.states.append(initial_basestate)
 
         # store a joint move internally
         self.joint_move = self.sm.get_joint_move()
@@ -209,9 +198,7 @@ class Match:
             self.apply_move(move)
 
         current_state = self.get_current_state()
-        str_state = self.propnet.to_gdl([current_state.get(i)
-                                         for i in range(len(self.propnet.base_propositions))])
-        log.info("Current state : '%s'" % str_state)
+        log.info("Current state : '%s'" % self.sm.basestate_to_str(current_state))
         self.sm.update_bases(current_state)
         if self.sm.is_terminal():
             return "done"
