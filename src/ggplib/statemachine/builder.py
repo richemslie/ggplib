@@ -1,174 +1,329 @@
 import time
 import traceback
 
+import json
+
 from ggplib.util import log
+from ggplib import interface
 from ggplib.propnet.constants import OR, AND, NOT, PROPOSITION, TRANSITION, MAX_FAN_OUT_SIZE
 
 DEBUG = False
 
 
-class Builder:
-    def __init__(self, interface, verbose=True):
-        self.sm = None
-        self.interface = interface
-        self.verbose = verbose
+class BuilderBase:
+    ''' Just prints what it would do '''
+    def __init__(self, propnet):
+        self.propnet = propnet
 
     def create_state_machine(self, role_count, num_bases, num_transitions,
                              num_components, num_outputs, topological_size):
-        if self.verbose:
-            print "Creating SM with role_count: %s, "\
-                  "bases: %s, #trans %s, #comps %s, #outputs %s, topo %s" % (role_count,
-                                                                             num_bases,
-                                                                             num_transitions,
-                                                                             num_components,
-                                                                             num_outputs,
-                                                                             topological_size)
-            print
-
-        # create the c statemachine
-        self.sm = self.interface.StateMachine(role_count, num_bases,
-                                              num_transitions, num_components,
-                                              num_outputs, topological_size)
+        print("Creating SM with role_count: %s, "
+              "bases: %s, #trans %s, #comps %s, #outputs %s, topo %s" % (role_count,
+                                                                         num_bases,
+                                                                         num_transitions,
+                                                                         num_components,
+                                                                         num_outputs,
+                                                                         topological_size))
+        print("")
 
     def set_role(self, role_index, name, input_start_index, legal_start_index,
                  goal_start_index, num_inputs_legals, num_goals):
-        if self.verbose:
-            print "Creating Role %s/%s with input/legal/goals"\
-                  "%s/%s/%s #inputs/goals %s/%s" % (role_index,
+        print("Creating Role %s/%s with input/legal/goals "
+              "%s/%s/%s, num inputs/goals %s/%s" % (role_index,
                                                     name,
                                                     input_start_index,
                                                     legal_start_index,
                                                     goal_start_index,
                                                     num_inputs_legals,
-                                                    num_goals)
+                                                    num_goals))
+        print("")
 
-        self.sm.set_role(role_index, name, input_start_index,
-                         legal_start_index, goal_start_index, num_inputs_legals, num_goals)
+    def set_meta_proposition(self, component_id, typename, gdl_str, move, goal_value):
+        if goal_value != -1:
+            print("meta %s id=%d : goal_value=%d" % (typename,
+                                                     component_id,
+                                                     goal_value))
+        elif move != '':
+            print("meta %s id=%d : gdl=%s, move=%s" % (typename,
+                                                       component_id,
+                                                       gdl_str,
+                                                       move))
+        else:
+            print("meta %s id=%d : gdl=%s" % (typename,
+                                              component_id,
+                                              gdl_str))
+
+    def set_meta_transition(self, component_id, typename, gdl_str):
+        print("mate %s id=%d : gdl='%s'" % (typename, component_id, gdl_str))
+
+    def set_meta_component(self, component_id, typename):
+        print("meta %s id=%d" % (typename, component_id))
 
     def set_component(self, component_id, required_count_false, required_count_true,
                       output_index, number_outputs, initial_count, incr, topological_order):
 
-        self.sm.set_component(component_id, required_count_false, required_count_true,
-                              output_index, number_outputs, initial_count, incr, topological_order)
+        print("")
+        print("Set id=%s -> required_counts %d/%d, output_index=%d, number_outputs=%d, "
+              "initial_count=%d, incr=%d, topological_order=%d" % (component_id,
+                                                                   required_count_false,
+                                                                   required_count_true,
+                                                                   output_index, number_outputs,
+                                                                   initial_count,
+                                                                   incr,
+                                                                   topological_order))
 
     def set_output(self, output_index, component_id):
-        self.sm.set_output(output_index, component_id)
+        if component_id == -1:
+            component_str = "terminate"
+        else:
+            component_str = str(component_id)
+        print("output_index(%d) -> %s" % (output_index, component_str))
 
-    def record_finalise(self, control_flows, terminal_index):
-        self.sm.record_finalise(control_flows, terminal_index)
+    def finalise(self, control_flows, terminal_index):
+        print("********")
+        print("finalise - control_flows %d, terminal_index %d" % (control_flows, terminal_index))
+        print("********")
+        print("")
+        return None
+
+
+class BuilderJson(BuilderBase):
+    ''' Just prints what it would do '''
+    def __init__(self, propnet):
+        self.propnet = propnet
+        self.create_dict = None
+        self.roles = []
+        self.metas = []
+        self.components = []
+        self.outputs = []
+        self.lib = interface.lib
+
+    def create_state_machine(self, role_count, num_bases, num_transitions,
+                             num_components, num_outputs, topological_size):
+        self.create_dict = dict(role_count=role_count,
+                                num_bases=num_bases,
+                                num_transitions=num_transitions,
+                                num_components=num_components,
+                                num_outputs=num_outputs,
+                                topological_size=num_outputs)
+
+    def set_role(self, role_index, name, input_start_index, legal_start_index,
+                 goal_start_index, num_inputs_legals, num_goals):
+        r = dict(role_index=role_index,
+                 name=name,
+                 input_start_index=input_start_index,
+                 legal_start_index=legal_start_index,
+                 goal_start_index=goal_start_index,
+                 num_inputs_legals=num_inputs_legals,
+                 num_goals=num_goals)
+        self.roles.append(r)
+
+    def add_meta(self, component_id, typename, gdl_str="", move="", goal_value=-1):
+        meta = dict(component_id=component_id,
+                    typename=typename,
+                    gdl_str=gdl_str,
+                    move=move,
+                    goal_value=goal_value)
+        self.metas.append(meta)
 
     def set_meta_proposition(self, component_id, typename, gdl_str, move, goal_value):
-        self.sm.set_meta_component(component_id, typename, gdl_str, move, goal_value)
+        self.add_meta(component_id, typename, gdl_str=gdl_str, move=move, goal_value=goal_value)
 
     def set_meta_transition(self, component_id, typename, gdl_str):
-        self.sm.set_meta_component(component_id, typename, gdl_str, "", -1)
+        self.add_meta(component_id, typename, gdl_str=gdl_str)
 
     def set_meta_component(self, component_id, typename):
-        self.sm.set_meta_component(component_id, typename, "", "", -1)
+        self.add_meta(component_id, typename)
 
-    def add_roles(self, propnet):
-        self.sm.roles = [str(ri.role) for ri in propnet.role_infos]
+    def set_component(self, component_id, required_count_false, required_count_true,
+                      output_index, number_outputs, initial_count, incr, topological_order):
+        component = (component_id, required_count_false, required_count_true,
+                     output_index, number_outputs, initial_count, incr, topological_order)
+        self.components.append(component)
 
-    def do_initial_state(self, propnet):
-        # set initial state:
-        self.sm.initial_base_state = self.sm.new_base_state()
-        for idx, value in enumerate(propnet.get_initial_state()):
-            self.sm.initial_base_state.set(idx, value)
-            assert self.sm.initial_base_state.get(idx) == value
+    def set_output(self, output_index, component_id):
+        output = (output_index, component_id)
+        self.outputs.append(output)
 
-        self.sm.set_initial_state(self.sm.initial_base_state)
-        self.sm.update_bases(self.sm.initial_base_state)
+    def finalise(self, control_flows, terminal_index):
+        master = dict(create=self.create_dict,
+                      roles=self.roles,
+                      metas=self.metas,
+                      components=self.components,
+                      outputs=self.outputs,
+                      initial_state=self.propnet.get_initial_state(),
+                      control_flows=control_flows,
+                      terminal_index=terminal_index)
+        log.verbose("Before dumps()")
+        buf = json.dumps(master)
+        log.verbose("after dumps()")
 
-    def do_build(self, propnet):
-        propnet.reorder_components()
-        propnet.verify()
+        c_statemachine = interface.create_statemachine_from_json(buf)
+        log.verbose("after sm creation")
 
-        role_count = len(propnet.role_infos)
+        # XXX WHY> DONT DO THIS
+        # get roles and initial state
+        roles = [str(ri.role) for ri in self.propnet.role_infos]
 
-        def get_number_outputs(c):
-            return len(c.outputs) + 1
+        # XXX OR THIS
+        # set the initial state
+        initial_base_state = interface.BaseState(self.lib.StateMachine__newBaseState(c_statemachine))
 
-        # create the state machine:
-        args = (role_count,
-                len(propnet.base_propositions),
-                len(propnet.transitions),
-                len(propnet.components),
-                sum(get_number_outputs(c) for c in propnet.components.values()),
-                propnet.topological_size)
+        for idx, value in enumerate(self.propnet.get_initial_state()):
+            initial_base_state.set(idx, value)
+            assert initial_base_state.get(idx) == value
 
-        self.create_state_machine(*args)
 
-        # create the roles:
-        for i, role_info in enumerate(propnet.role_infos):
-            args = (i, role_info.role,
-                    role_info.inputs[0].cid,
-                    # XXX another hack...
-                    role_info.legals[0].cid if role_info.legals else -1,
-                    role_info.goals[0].cid if role_info.goals else 0,
-                    len(role_info.inputs),
-                    len(role_info.goals))
-            self.set_role(*args)
+        return interface.StateMachine(c_statemachine,
+                                      initial_base_state, roles)
 
-        # create component and outputs:
-        components_outs_count = 0
-        for cid in sorted(propnet.components):
-            c = propnet.components[cid]
-            assert len(c.inputs) <= MAX_FAN_OUT_SIZE
-            args = (cid, c.required_count_false, c.required_count_true,
-                    components_outs_count, len(c.outputs), c.count, c.increment_multiplier, c.topological_order)
+class BuilderCpp(BuilderBase):
+    ''' calls c++ code to construct state machine '''
 
-            if self.verbose:
-                if c.component_type == PROPOSITION and c.meta.is_input:
-                    print "-->", c
+    def __init__(self, propnet):
+        self.propnet = propnet
+        self.build_sm = None
+        self.lib = interface.lib
+        self.c_statemachine = None
 
-            self.set_component(*args)
+    def create_state_machine(self, role_count, num_bases, num_transitions,
+                             num_components, num_outputs, topological_size):
 
-            sorted_outputs = c.outputs[:]
-            sorted_outputs.sort(key=lambda x: x.cid, reverse=False)
+        self.c_statemachine = self.lib.createStateMachine(role_count, num_bases, num_transitions,
+                                                          num_components, num_outputs, topological_size)
 
-            for o in sorted_outputs:
-                assert o.cid < len(propnet.components)
-                self.set_output(components_outs_count, o.cid)
-                components_outs_count += 1
+    def set_role(self, role_index, name, input_start_index, legal_start_index,
+                 goal_start_index, num_inputs_legals, num_goals):
+        self.lib.StateMachine__setRole(self.c_statemachine, role_index, name, input_start_index,
+                                       legal_start_index, goal_start_index,
+                                       num_inputs_legals, num_goals)
 
-            self.set_output(components_outs_count, -1)
+    def set_meta_proposition(self, component_id, typename, gdl_str, move, goal_value):
+        self.lib.StateMachine__setMetaComponent(self.c_statemachine, component_id,
+                                                typename, gdl_str, move, goal_value)
+
+    def set_meta_transition(self, component_id, typename, gdl_str):
+        self.lib.StateMachine__setMetaComponent(self.c_statemachine, component_id, typename, gdl_str, "", -1)
+
+    def set_meta_component(self, component_id, typename):
+        self.lib.StateMachine__setMetaComponent(self.c_statemachine, component_id, typename, "", "", -1)
+
+    def set_component(self, component_id, required_count_false, required_count_true,
+                      output_index, number_outputs, initial_count, incr, topological_order):
+        self.lib.StateMachine__setComponent(self.c_statemachine, component_id, required_count_false,
+                                            required_count_true, output_index, number_outputs,
+                                            initial_count, incr, topological_order)
+
+    def set_output(self, output_index, component_id):
+        self.lib.StateMachine__setOutput(self.c_statemachine, output_index, component_id)
+
+    def finalise(self, control_flows, terminal_index):
+        self.lib.StateMachine__recordFinalise(self.c_statemachine, control_flows, terminal_index)
+
+        # set the initial state
+        initial_base_state = interface.BaseState(self.lib.StateMachine__newBaseState(self.c_statemachine))
+
+        for idx, value in enumerate(self.propnet.get_initial_state()):
+            initial_base_state.set(idx, value)
+            assert initial_base_state.get(idx) == value
+
+        self.lib.StateMachine__setInitialState(self.c_statemachine, initial_base_state.c_base_state)
+        self.lib.StateMachine__reset(self.c_statemachine)
+
+        # XXX delete basestate or was it consumed?
+
+        # get roles and initial state
+        roles = [str(ri.role) for ri in self.propnet.role_infos]
+
+        return interface.StateMachine(self.c_statemachine,
+                                      initial_base_state, roles)
+
+
+def do_build(propnet, the_builder=None):
+    if the_builder is None:
+        the_builder = BuilderCpp(propnet)
+
+    propnet.reorder_components()
+    propnet.verify()
+
+    role_count = len(propnet.role_infos)
+
+    def get_number_outputs(c):
+        return len(c.outputs) + 1
+
+    # create the state machine:
+    args = (role_count,
+            len(propnet.base_propositions),
+            len(propnet.transitions),
+            len(propnet.components),
+            sum(get_number_outputs(c) for c in propnet.components.values()),
+            propnet.topological_size)
+
+    the_builder.create_state_machine(*args)
+
+    # create the roles:
+    for i, role_info in enumerate(propnet.role_infos):
+        args = (i, role_info.role,
+                role_info.inputs[0].cid,
+                # XXX another hack...
+                role_info.legals[0].cid if role_info.legals else -1,
+                role_info.goals[0].cid if role_info.goals else 0,
+                len(role_info.inputs),
+                len(role_info.goals))
+        the_builder.set_role(*args)
+
+    # set the meta information:
+    for cid in sorted(propnet.components):
+        c = propnet.components[cid]
+        if c.component_type == PROPOSITION:
+            goal_value = c.meta.goal_value if c.meta.goal_value is not None else -1
+            move = str(c.meta.move) if c.meta.move is not None else ""
+            the_builder.set_meta_proposition(c.cid, c.typename, str(c.meta.gdl), move, goal_value)
+        elif c.component_type == TRANSITION:
+            gdl = c.fish_gdl()
+            the_builder.set_meta_transition(c.cid, c.typename, str(gdl))
+
+        else:
+            the_builder.set_meta_component(c.cid, c.typename)
+
+    # create component and outputs:
+    components_outs_count = 0
+    for cid in sorted(propnet.components):
+        c = propnet.components[cid]
+        assert len(c.inputs) <= MAX_FAN_OUT_SIZE
+        args = (cid, c.required_count_false, c.required_count_true,
+                components_outs_count, len(c.outputs), c.count, c.increment_multiplier, c.topological_order)
+
+        the_builder.set_component(*args)
+
+        sorted_outputs = c.outputs[:]
+        sorted_outputs.sort(key=lambda x: x.cid, reverse=False)
+
+        for o in sorted_outputs:
+            assert o.cid < len(propnet.components)
+            the_builder.set_output(components_outs_count, o.cid)
             components_outs_count += 1
 
-        assert components_outs_count == sum(get_number_outputs(c) for c in propnet.components.values())
+        the_builder.set_output(components_outs_count, -1)
+        components_outs_count += 1
 
-        # finalize components / outputs:
-        total_control_flow = 0
-        for c in propnet.components.values():
-            if c.component_type in (AND, OR, NOT):
-                total_control_flow += 1
-        self.record_finalise(total_control_flow, propnet.terminal_proposition.cid)
+    assert components_outs_count == sum(get_number_outputs(c) for c in propnet.components.values())
 
-        # set the meta information:
-        for cid in sorted(propnet.components):
-            c = propnet.components[cid]
-            if c.component_type == PROPOSITION:
-                goal_value = c.meta.goal_value if c.meta.goal_value is not None else -1
-                move = str(c.meta.move) if c.meta.move is not None else ""
-                self.set_meta_proposition(c.cid, c.typename, str(c.meta.gdl), move, goal_value)
-            elif c.component_type == TRANSITION:
-                gdl = c.fish_gdl()
-                self.set_meta_transition(c.cid, c.typename, str(gdl))
+    # finalize components / outputs:
+    total_control_flow = 0
+    for c in propnet.components.values():
+        if c.component_type in (AND, OR, NOT):
+            total_control_flow += 1
 
-            else:
-                self.set_meta_component(c.cid, c.typename)
+    return the_builder.finalise(total_control_flow, propnet.terminal_proposition.cid)
 
-        # and do initial state
-        self.add_roles(propnet)
-        self.do_initial_state(propnet)
 
 ###############################################################################
 
 def build_goals_only_sm(propnet):
-    from ggplib import interface
     propnet = propnet.dupe()
 
     log.info("Building terminal/goal based state machine")
-    goal_builder = Builder(interface, verbose=False)
 
     if DEBUG:
         print "Stripping inputs"
@@ -189,8 +344,7 @@ def build_goals_only_sm(propnet):
     propnet.print_summary()
     print
 
-    goal_builder.do_build(propnet)
-    return goal_builder.sm
+    return do_build(propnet)
 
 
 def build_combined_state_machine(propnet):
@@ -234,6 +388,7 @@ def build_combined_state_machine(propnet):
     return build_combined_state_machine_refactoring(propnet.dupe(), control_bases, strip_goals=True)
 
 
+# XXX think the name of this function is a hint (it is a mess)
 def build_combined_state_machine_refactoring(propnet, control_bases, strip_goals=True):
     from ggplib import interface
     from ggplib.statemachine.forwards import FwdStateMachineAnalysis, FwdStateMachineCombined, play_comparison
@@ -254,6 +409,7 @@ def build_combined_state_machine_refactoring(propnet, control_bases, strip_goals
         while time.time() < end_time:
             play_comparison(combined_py_sm, test_sm, verbose=False)
             count += 1
+
     except Exception, exc:
         print exc
         traceback.print_exc()
@@ -265,21 +421,32 @@ def build_combined_state_machine_refactoring(propnet, control_bases, strip_goals
 
     log.info("Ok played for one second in combined statemachine, did %s sucessful rollouts" % count)
 
+
+    # the combined statemachine
+    c_statemachine = interface.lib.createCombinedStateMachine(len(control_bases.networks))
+
     if strip_goals:
+        # create and add goal statemachine
         goal_sm = build_goals_only_sm(propnet)
-    else:
-        goal_sm = None
+        interface.lib.CombinedStateMachine__setGoalStateMachine(c_statemachine, goal_sm.c_statemachine)
 
-    controls = []
-    for p in control_bases.networks:
-        b = Builder(interface, verbose=False)
-        b.do_build(p)
-        controls.append((p.fixed_base.cid, b.sm))
+    # create and add control statemachine
+    control_sm = None
+    for idx, p in enumerate(control_bases.networks):
+        control_sm = do_build(p)
+        interface.lib.CombinedStateMachine__setControlStateMachine(c_statemachine, idx,
+                                                                   p.fixed_base.cid,
+                                                                   control_sm.c_statemachine)
 
-    return interface.CombinedStateMachine(goal_sm, controls)
+    # this needs to be called after setting the controls
+    interface.lib.StateMachine__reset(c_statemachine)
 
+    assert control_sm is not None
+    combined_sm = interface.StateMachine(c_statemachine, control_sm.get_initial_state(), control_sm.get_roles())
 
-def build_goaless_sm(propnet):
+    return combined_sm
+
+def build_goalless_sm(propnet):
     from ggplib import interface
     propnet = propnet.dupe()
     goal_sm = build_goals_only_sm(propnet)
@@ -300,22 +467,20 @@ def build_goaless_sm(propnet):
 
     propnet.ensure_valid()
 
-    builder2 = Builder(interface, verbose=False)
-    builder2.do_build(propnet)
-    goalless_sm = builder2.sm
+    goalless_sm = do_build(propnet)
 
     role_count = len(propnet.role_infos)
-    return interface.GoallessStateMachine(role_count,
-                                          goalless_sm,
-                                          goal_sm)
+
+    c_statemachine = interface.lib.createGoallessStateMachine(role_count,
+                                                              goalless_sm.c_statemachine,
+                                                              goal_sm.c_statemachine)
+
+    return interface.StateMachine(c_statemachine, goal_sm.get_initial_state(), goal_sm.get_roles())
 
 
 def build_standard_sm(propnet):
-    from ggplib import interface
     propnet = propnet.dupe()
-    builder = Builder(interface, verbose=False)
-    builder.do_build(propnet)
-    return builder.sm
+    return do_build(propnet)
 
 ###############################################################################
 
@@ -333,7 +498,7 @@ def build_sm(propnet, combined=True):
             traceback.print_exc()
 
     if sm is None:
-        sm = build_goaless_sm(propnet)
+        sm = build_goalless_sm(propnet)
         # sm = build_standard_sm(propnet)
 
     return sm

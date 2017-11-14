@@ -2,9 +2,14 @@ import pdb
 import sys
 import traceback
 
+import py
+
 from ggplib.util import log
 
 from ggplib.db import lookup
+
+from ggplib import interface
+from ggplib.statemachine.depthcharges import depth_charges
 
 
 ######################################################################
@@ -24,7 +29,7 @@ def setup():
 
 def get_gdl_for_game(game):
     from ggplib.propnet.getpropnet import get_filename_for_game
-    f = open(get_filename_for_game("ticTacToe"))
+    f = open(get_filename_for_game(game))
     return f.read()
 
 
@@ -47,22 +52,29 @@ def test_compare_same():
 
 
 def test_with_database():
-    gdl_str = get_gdl_for_game("ticTacToe")
+    gdl_str = get_gdl_for_game("connectFour")
 
-    propnet, mapping, sm, game_name = lookup.by_gdl(gdl_str)
-    assert game_name == "ticTacToe"
+    mapping, sm, game_name = lookup.by_gdl(gdl_str)
+    assert game_name == "connectFour"
     assert mapping is None
 
-    # ensure keeps returning same propnet
+    # ensure keeps returning valid statemachines
     for ii in range(10):
-        new_propnet, new_mapping, new_sm, new_game_name = lookup.by_gdl(gdl_str)
+        new_mapping, new_sm, new_game_name = lookup.by_gdl(gdl_str)
 
-        assert new_game_name == "ticTacToe"
+        assert new_game_name == "connectFour"
         assert new_mapping is None
-        assert new_propnet == propnet
-        assert id(new_propnet) == id(propnet)
         assert new_sm != sm
         assert id(new_sm) != id(sm)
+        assert new_sm.get_initial_state() == sm.get_initial_state()
+        interface.dealloc_statemachine(new_sm)
+
+    # finally run rollouts in c++ on the original sm
+    log.info("Testing sm %s" % sm)
+    msecs_taken, rollouts, _ = interface.depth_charge(sm, 1)
+    rollouts_per_second = (rollouts / float(msecs_taken)) * 1000
+    log.info("c++ rollouts per second %.2f" % rollouts_per_second)
+
 
 
 def test_not_in_database():
@@ -91,19 +103,24 @@ def test_not_in_database():
   (<= terminal (true o3))
     """
 
-    propnet, mapping, sm, game_name = lookup.by_gdl(some_simple_game)
+    mapping, sm, game_name = lookup.by_gdl(some_simple_game)
     assert game_name == "unknown"
+
+    # run rollouts in c++
+    msecs_taken, rollouts, _ = interface.depth_charge(sm, 1)
+    rollouts_per_second = (rollouts / float(msecs_taken)) * 1000
+    log.info("c++ rollouts per second %.2f" % rollouts_per_second)
 
 
 def test_lookup_for_all_games():
-    log.verbose("Note: Will be slow first time around.")
+    py.test.skip("this is super slow")
     failed = []
     known_to_fail = ['amazonsTorus_10x10', 'atariGoVariant_7x7', 'gt_two_thirds_4p', 'gt_two_thirds_6p', 'linesOfAction']
     for game in lookup.get_all_game_names():
         if game not in known_to_fail:
             try:
-                propnet, _ = lookup.by_name(game, build_sm=False)
-                log.verbose("DONE GETTING PROPNET FOR GAME %s %s" % (game, propnet))
+                sm = lookup.by_name(game, build_sm=False)
+                log.verbose("DONE GETTING Statemachine FOR GAME %s %s" % (game, sm))
             except:
                 failed.append(game)
 

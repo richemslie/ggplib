@@ -1567,7 +1567,8 @@ class Propnet:
         self.transitions = new_transitions
 
     def reorder_components(self):
-        assert not self.already_reordered
+        if self.already_reordered:
+            return
 
         # reorder all the components (starting from 0)
         component_id = [0]

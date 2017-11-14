@@ -628,17 +628,13 @@ class GameInfo:
 
     def lazy_load(self):
         if self.propnet is None:
+            log.info("Lazy loading propnet and statemachine for %s" % self.game)
             self.propnet = getpropnet.get_with_game(self.game)
-            # XXX self.sm = builder.build_sm(self.propnet)
+            self.sm = builder.build_sm(self.propnet)
+            log.verbose("Lazy loading done for %s" % self.game)
 
     def get_sm(self):
-        if self.sm is None:
-            self.sm = builder.build_sm(self.propnet)
-
-        # XXXtmp - use dupe
-        sm = self.sm
-        self.sm = None
-        return sm
+        return self.sm.dupe()
 
 
 ###############################################################################
@@ -751,6 +747,7 @@ class Database:
         if all_same:
             new_mapping = None
 
+        log.info("Lookup - found game %s in database" % info.game)
         info.lazy_load()
         return info, new_mapping
 
@@ -758,6 +755,7 @@ class Database:
 ###############################################################################
 
 the_database = None
+
 
 ###############################################################################
 # The API:
@@ -784,11 +782,10 @@ def get_all_game_names():
 def by_name(name, build_sm=True):
     db = get_database(verbose=False)
     info = db.get_by_name(name)
-    sm = builder.build_sm(info.propnet) if build_sm else None
-    return info.propnet, sm
+    return info.get_sm()
 
 
-def by_gdl(gdl, build_sm=True, end_time=-1):
+def by_gdl(gdl, end_time=-1):
     # XXX ignoring end_time
     try:
         gdl_str = gdl
@@ -807,9 +804,7 @@ def by_gdl(gdl, build_sm=True, end_time=-1):
             traceback.print_exc()
             raise LookupFailed("Did not find game")
 
-        # XXX this will change
-        sm = info.get_sm() if build_sm else None
-        return info.propnet, mapping, sm, info.game
+        return mapping, info.get_sm(), info.game
 
     except LookupFailed as exc:
         # creates temporary files
@@ -819,6 +814,4 @@ def by_gdl(gdl, build_sm=True, end_time=-1):
         sm = builder.build_sm(propnet)
         game_name = "unknown"
 
-        # XXX this will change
-        sm = builder.build_sm(propnet) if build_sm else None
-        return propnet, propnet_symbol_mapping, sm, game_name
+        return propnet_symbol_mapping, sm, game_name
