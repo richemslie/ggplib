@@ -61,7 +61,7 @@ namespace GGPLib {
         void updateBases(const BaseState* bs);
         LegalState* getLegalState(int role_index);
 
-        const char* getStateString(int index) const;
+        const char* getGDL(int index) const;
         const char* legalToMove(int role_index, int choice) const;
 
         JointMove* getJointMove();

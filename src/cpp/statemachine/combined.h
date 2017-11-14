@@ -50,8 +50,8 @@ namespace GGPLib {
             return this->current->getLegalState(role_index);
         }
 
-        const char* getStateString(int index) const {
-            return this->current->getStateString(index);
+        const char* getGDL(int index) const {
+            return this->current->getGDL(index);
         }
 
         const char* legalToMove(int role_index, int choice) const {

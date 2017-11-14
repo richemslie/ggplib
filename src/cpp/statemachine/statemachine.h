@@ -27,7 +27,7 @@ namespace GGPLib {
         virtual void updateBases(const BaseState* bs) = 0;
         virtual LegalState* getLegalState(int role_index) = 0;
 
-        virtual const char* getStateString(int index) const = 0;
+        virtual const char* getGDL(int index) const = 0;
         virtual const char* legalToMove(int role_index, int choice) const = 0;
 
         virtual JointMove* getJointMove() = 0;
