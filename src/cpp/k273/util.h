@@ -117,12 +117,14 @@ namespace K273 {
     class LockedQueue {
     public:
         void push(T new_value) {
-            SpinLockGuard g(this->spin_lock);
+            std::lock_guard <std::mutex> lk(this->mut);
+            // SpinLockGuard g(this->spin_lock);
             this->data_queue.push(new_value);
         }
 
         T pop() {
-            SpinLockGuard g(this->spin_lock);
+            std::lock_guard <std::mutex> lk(this->mut);
+            // SpinLockGuard g(this->spin_lock);
             if (this->data_queue.empty()) {
                 return nullptr;
             }
@@ -133,12 +135,14 @@ namespace K273 {
         }
 
         bool empty() {
-            SpinLockGuard g(this->spin_lock);
+            std::lock_guard <std::mutex> lk(this->mut);
+            // SpinLockGuard g(this->spin_lock);
             return this->data_queue.empty();
         }
 
     private:
-        SpinLock spin_lock;
+        std::mutex mut;
+        //SpinLock spin_lock;
         std::queue <T> data_queue;
     };
 
