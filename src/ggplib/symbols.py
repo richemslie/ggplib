@@ -22,8 +22,8 @@ class ListTerm(tuple):
         if self.is_function is None:
 
             self.is_function = True
-            for e in self:
-                if not isinstance(e, Term):
+            for term in self:
+                if not isinstance(term, Term):
                     self.is_function = False
                     break
 
@@ -32,8 +32,8 @@ class ListTerm(tuple):
     @property
     def is_constant(self):
         ' all elements are constant (recursive definition) '
-        for e in self:
-            if not e.is_constant:
+        for term in self:
+            if not term.is_constant:
                 return False
         return True
 
@@ -58,17 +58,17 @@ def tokenize(s):
     return s.replace('(', ' ( ').replace(')', ' ) ').split()
 
 
-class SymbolFactory:
+class SymbolFactory(object):
     def __init__(self):
         self.symbol_pool = dict()
 
     def create(self, clz, *args):
         # make args hashable
         new_args = []
-        for a in args:
-            if isinstance(a, list):
-                a = tuple(a)
-            new_args.append(a)
+        for arg in args:
+            if isinstance(arg, list):
+                arg = tuple(arg)
+            new_args.append(arg)
         args = tuple(new_args)
 
         # symbol[clz] -> clz_pool[args] -> instance
@@ -104,9 +104,9 @@ class SymbolFactory:
                 current_list = []
 
             elif token == ')':
-                sl = self.create(ListTerm, current_list)
+                list_term = self.create(ListTerm, current_list)
                 current_list = stack.pop()
-                current_list.append(sl)
+                current_list.append(list_term)
 
             else:
                 current_list.append(self.create(Term, token))
