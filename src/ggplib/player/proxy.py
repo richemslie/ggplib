@@ -66,6 +66,8 @@ class CppPlayer(MatchPlayer):
         self.proxy = None
 
     def meta_create_player(self):
+        # IMPORTANT: self.sm should be passed in to underlying player.  The underlying player will
+        # cleanup the statemachine.
         assert False, "Abstract, not implemented"
 
     def on_meta_gaming(self, finish_time):
