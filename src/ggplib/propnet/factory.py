@@ -6,6 +6,8 @@ TODO
 * remame roleinfo.role' should be 'roleinfo.name'
 '''
 
+from __future__ import print_function
+
 from ggplib.propnet.constants import AND, OR, NOT, PROPOSITION, TRANSITION, CONSTANT, UNKNOWN, MAX_FAN_OUT_SIZE
 from ggplib import symbols
 from ggplib.util import log
@@ -16,11 +18,17 @@ DEBUG = False
 # basic type hierarchy (inheritance here doesn't actually do very much)
 ###############################################################################
 
-
 class ComponentBase(object):
     component_type = UNKNOWN
     increment_multiplier = 1
     topological_order = 0
+    typename_mapping = {AND : "And",
+                        OR : "Or",
+                        NOT : "Not",
+                        PROPOSITION : "Proposition",
+                        TRANSITION : "Transition",
+                        CONSTANT : "Constant",
+                        UNKNOWN : "Unknown"}
 
     def __init__(self, cid, count, inputs, outputs):
         self.cid = cid
@@ -33,14 +41,7 @@ class ComponentBase(object):
 
     @property
     def typename(self):
-        d = {AND : "And",
-             OR : "Or",
-             NOT : "Not",
-             PROPOSITION : "Proposition",
-             TRANSITION : "Transition",
-             CONSTANT : "Constant",
-             UNKNOWN : "Unknown"}
-        return d[self.component_type]
+        return self.typename_mapping[self.component_type]
 
     def __repr__(self):
         return "%s(%s, %s, %s, %s)" % (self.typename, self.cid, self.count, len(self.inputs), len(self.outputs))
@@ -96,7 +97,6 @@ class Constant(ComponentBase):
     component_type = CONSTANT
 
 ###############################################################################
-
 
 class MetaProposition:
     is_base = False
@@ -1157,7 +1157,8 @@ class Propnet:
         for c in self.components.values():
             if c.component_type == Y:
                 # if all the inputs to an OR are ANDS...
-                look_for_inputs = [i for i in c.inputs if (i.component_type == X and len(i.outputs) == 1)]
+                look_for_inputs = [i for i in c.inputs
+                                   if (i.component_type == X and len(i.outputs) == 1)]
                 if len(look_for_inputs) == 1:
                     continue
                 if len(look_for_inputs) == len(c.inputs):
@@ -1444,7 +1445,7 @@ class Propnet:
 
         cb = BackPropagator(self, trace=False, compare=True)
         for c in self.components.values():
-            if (not c.outputs and c.inputs):
+            if not c.outputs and c.inputs:
                 try:
                     cb.back_propagate(c, set())
                 except:
