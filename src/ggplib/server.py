@@ -18,7 +18,6 @@ from ggplib.player import match
 
 from ggplib.util import log
 
-symbol_factory = SymbolFactory()
 
 # timeout if we don't hear anything for at least this time
 GAMESERVER_TIMEOUT = 60 * 20
@@ -30,6 +29,7 @@ class GGPServer(Resource):
     ''' a server deal withs the ggp web service like protocol.  It has only one player, which is
       passed into each new match. '''
 
+    symbol_factory = SymbolFactory()
     current_match = None
     player = None
     last_info_time = 0
@@ -40,7 +40,7 @@ class GGPServer(Resource):
     def set_player(self, player):
         self.player = player
 
-    def getChild(self, name, request):
+    def getChild(self, *args):
         return self
 
     def render_GET(self, request):
@@ -72,7 +72,7 @@ class GGPServer(Resource):
             return self.handle_info()
 
         try:
-            symbols = list(symbol_factory.symbolize(content))
+            symbols = list(self.symbol_factory.symbolize(content))
 
             # get head
             if len(symbols) == 0:
@@ -81,48 +81,48 @@ class GGPServer(Resource):
 
             head = symbols[0]
             if head.lower() == "info":
-                return self.handle_info()
+                res = self.handle_info()
 
             elif head.lower() == "start":
                 log.debug("HEADERS : %s" % pprint.pformat(request.getAllHeaders()))
                 log.debug(str(symbols))
-                return self.handle_start(symbols)
+                res = self.handle_start(symbols)
 
             elif head.lower() == "play":
                 log.debug(str(symbols))
-                return self.handle_play(symbols)
+                res = self.handle_play(symbols)
 
             elif head.lower() == "stop":
                 log.debug(str(symbols))
-                return self.handle_stop(symbols)
+                res = self.handle_stop(symbols)
 
             elif head.lower() == "abort":
                 log.debug(str(symbols))
-                return self.handle_abort(symbols)
+                res = self.handle_abort(symbols)
 
             else:
                 log.error("UNHANDLED REQUEST %s" % symbols)
 
-        except Exception, exc:
+        except Exception as exc:
             log.error("ERROR - aborting: %s" % exc)
-            type, value, tb = sys.exc_info()
             log.error(traceback.format_exc())
 
             if self.current_match:
-                self.current_match.do_abort()
-                self.current_match = None
+                self.abort()
 
-            return "aborted"
+            res = "aborted"
+
+        return res
 
     def handle_info(self):
-        t = time.time()
+        cur_time = time.time()
 
         # do info_counts or we get reports of "0 infos in the last minute"
         self.info_counts += 1
-        if t - self.last_info_time > 60:
+        if cur_time - self.last_info_time > 60:
             log.debug("Got %s infos in last minute" % self.info_counts)
             self.info_counts = 0
-            self.last_info_time = t
+            self.last_info_time = cur_time
 
         if self.current_match is None:
             return "((name %s) (status available))" % self.player.get_name()
@@ -141,7 +141,7 @@ class GGPServer(Resource):
             log.debug("GOT A START message for %s while already playing match" % match_id)
             return "busy"
         else:
-            log.debug("Starting new match %s" % match_id)
+            log.info("Starting new match %s" % match_id)
             self.current_match = match.Match(match_id, role, meta_time, move_time, self.player, gdl)
             try:
                 # start gameserver timeout
@@ -189,20 +189,18 @@ class GGPServer(Resource):
 
         # XXX bug with standford 'player checker'??? XXX need to find out what is going on here?
         if isinstance(move, str) and move.lower != "nil":
-            move = symbol_factory.symbolize("( %s )" % move)
+            move = self.symbol_factory.symbolize("( %s )" % move)
 
         res = self.current_match.do_play(move)
         if res != "done":
-            log.error("WTF game not done %s" % self.sm)
+            log.error("Game was NOT done %s" % self.current_match.match_id)
 
         else:
             # cancel any timeout callbacks
             self.update_gameserver_timeout(None)
-
             self.current_match.do_stop()
 
         self.current_match = None
-
         return "done"
 
     def handle_abort(self, symbols):
@@ -218,12 +216,23 @@ class GGPServer(Resource):
             return "busy"
 
         # cancel any timeout callbacks
-        self.update_gameserver_timeout(None)
+        self.abort()
+        return "aborted"
 
-        res = self.current_match.do_abort()
+    def abort(self):
+        assert self.current_match is not None
+
+        try:
+            res = self.current_match.do_abort()
+        except Exception as exc:
+            log.critical("CRITICAL ERROR - during abort: %s" % exc)
+            log.critical(traceback.format_exc())
+
+        # always set it none
         self.current_match = None
 
-        return res
+        # and cancel any timeouts
+        self.update_gameserver_timeout(None)
 
     def update_gameserver_timeout(self, wait_time):
         # cancel the current timeout
