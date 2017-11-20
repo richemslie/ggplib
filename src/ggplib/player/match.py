@@ -6,6 +6,7 @@ from ggplib.util import log
 from ggplib.symbols import tokenize
 
 from ggplib.db import lookup
+from ggplib import interface
 
 ###################################################################################################
 
@@ -85,6 +86,11 @@ class Match:
                                                                            self.match_id))
 
         if initial_basestate:
+            # dupe the state - it could be deleted under our feet
+            bs = self.sm.new_base_state()
+            bs.assign(initial_basestate)
+            initial_basestate = bs
+
             log.debug("The start state is %s" % self.sm.basestate_to_str(initial_basestate))
 
             # update the statemachine
@@ -264,7 +270,25 @@ class Match:
             type, value, tb = sys.exc_info()
             log.error(traceback.format_exc())
 
-        # XXX cleanup any stuff here
+        # cleanup c++ stuff
+        log.warning("cleaning up c++ stuff")
+
+        # all the basestates
+        for bs in self.states:
+            # cleanup bs
+            interface.dealloc_basestate(bs)
+
+        self.states = []
+
+        if self.joint_move:
+            interface.dealloc_jointmove(self.joint_move)
+            self.joint_move = None
+
+        if self.sm:
+            interface.dealloc_statemachine(self.sm)
+            self.sm = None
+
+        log.warning("done cleaning up c++ stuff")
 
     def __repr__(self):
         return "(id:%s role:%s meta:%s move:%s)" % (self.match_id,
