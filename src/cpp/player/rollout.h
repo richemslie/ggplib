@@ -9,36 +9,75 @@
 
 namespace GGPLib {
 
-class DepthChargeRollout {
-public:
-    DepthChargeRollout(StateMachineInterface* sm) :
-        sm(sm) {
-        this->joint_move = this->sm->getJointMove();
-        this->next_state = this->sm->newBaseState();
-    }
+    class RolloutBase {
+    public:
+        RolloutBase(StateMachineInterface* sm);
+        virtual ~RolloutBase();
 
-    ~DepthChargeRollout() {
-        free(this->joint_move);
-        free(this->next_state);
-    }
+    public:
+        virtual void doRollout(const BaseState* start_state, int game_depth) = 0;
 
-public:
-    void doRollout(const BaseState* start_state);
+    public:
+        // public interface
+        int getScore(const int index) const {
+            return this->scores[index];
+        }
 
-    int getScore(const int index) const {
-        return this->scores[index];
-    }
+        const int getDepth() const {
+            return this->depth;
+        }
 
-private:
-    StateMachineInterface* sm;
-    JointMove* joint_move;
-    BaseState* next_state;
+        const JointMove* getMove(int index) const {
+            return reinterpret_cast <JointMove*> (this->moves + (index * this->joint_move_size));
+        }
 
-    std::vector <int> scores;
-    K273::Random random;
+        const BaseState* getBaseState(int index) const {
+            return reinterpret_cast <BaseState*> (this->states + (index * this->basestate_size));
+        }
 
-    static const int MAX_NUMBER_SIM_STATES = 500;
-};
+        const BaseState* getFinalBaseState() const {
+            int idx = std::max(0, this->depth - 1);
+            return this->getBaseState(idx);
+        }
+
+    protected:
+        JointMove* getMove(int index) {
+            return reinterpret_cast <JointMove*> (this->moves + (index * this->joint_move_size));
+        }
+
+        BaseState* getBaseState(int index) {
+            return reinterpret_cast <BaseState*> (this->states + (index * this->basestate_size));
+        }
+
+    protected:
+        StateMachineInterface* sm;
+        BaseState* initial_state;
+
+        int joint_move_size;
+        int basestate_size;
+        char* moves;
+        char* states;
+        int depth;
+
+        std::vector <int> scores;
+        K273::Random random;
+
+        static const int MAX_NUMBER_STATES = 500;
+    };
+
+
+    class DepthChargeRollout : public RolloutBase {
+    public:
+        DepthChargeRollout(StateMachineInterface* sm) :
+            RolloutBase(sm) {
+        }
+
+        virtual ~DepthChargeRollout() {
+        }
+
+    public:
+        void doRollout(const BaseState* start_state, int game_depth);
+    };
 
 }
 
