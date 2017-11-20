@@ -110,6 +110,11 @@ class JointMove:
     def set(self, role_index, value):
         lib.JointMove__set(self.c_joint_move, role_index, value)
 
+def dealloc_jointmove(joint_move):
+    # XXX actually delete it in c++
+    log.critical("IMPLEMENT ME: dealloc_jointmove")
+    joint_move.c_joint_move = None
+
 
 class StateMachine:
     def __init__(self, c_statemachine, initial_base_state, roles):
@@ -121,11 +126,15 @@ class StateMachine:
         self.reset()
 
     def dupe(self):
-        return StateMachine(lib.StateMachine__dupe(self.c_statemachine),
-                            self.initial_base_state, self.roles)
+        new_c_statemachine = lib.StateMachine__dupe(self.c_statemachine)
+        sm = StateMachine(new_c_statemachine, self.get_initial_state(), self.roles)
+        log.warning("Duped from %s to %s" % (self, sm))
+        return sm
 
     def get_initial_state(self):
-        return self.initial_base_state
+        bs = self.new_base_state()
+        bs.assign(self.initial_base_state)
+        return bs
 
     def get_roles(self):
         return self.roles
@@ -184,7 +193,7 @@ def dealloc_statemachine(sm):
 class CppProxyPlayer:
     def __init__(self, c_player):
         self.c_player = c_player
-        log.info("creating CppPlayerBase with %s" % self.c_player)
+        log.info("creating CppProxyPlayer with %s" % self.c_player)
 
     def cleanup(self):
         lib.PlayerBase__cleanup(self.c_player)
@@ -202,6 +211,8 @@ class CppProxyPlayer:
 ###############################################################################
 # separate function to create player (since will different configuration for each player type)
 ###############################################################################
+
+# IMPORTANT these players consume the statemachine sm.  It MUST not be cleaned up by the client.
 
 def create_random_player(sm, our_role_index):
     return lib.Player__createRandomPlayer(sm.c_statemachine, our_role_index)
