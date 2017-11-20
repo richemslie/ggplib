@@ -1,7 +1,7 @@
 from ggplib.util import log
 
 
-class MatchPlayer:
+class MatchPlayer(object):
     ' defines interface '
     def __init__(self, name=None):
         if name is None:
