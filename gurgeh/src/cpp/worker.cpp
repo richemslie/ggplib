@@ -36,7 +36,7 @@ Worker::Worker(WorkerEventQueue* event_queue, StateMachineInterface* sm,
 
 Worker::~Worker() {
     free(this->base_state);
-    delete sm;
+    delete this->sm;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -136,7 +136,7 @@ bool Worker::expandNode() {
 void Worker::doRollout(const Node* node) {
     const int role_count = this->sm->getRoleCount();
 
-    this->rollout->doRollout(node->getBaseState());
+    this->rollout->doRollout(node->getBaseState(), 0);
 
     this->score.clear();
     for (int ii=0; ii<role_count; ii++) {

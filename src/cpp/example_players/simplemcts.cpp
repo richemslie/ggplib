@@ -25,8 +25,7 @@ Player::Player(StateMachineInterface* sm, int player_role_index, Config* config)
     number_of_nodes(0),
     node_allocated_memory(0) {
 
-    StateMachineInterface* dupe_sm = this->sm->dupe();
-    this->rollout = new DepthChargeRollout(dupe_sm);
+    this->rollout = new DepthChargeRollout(this->sm->dupe());
     this->static_base_state = this->sm->newBaseState();
 
     this->playout_stats.reset();
@@ -450,7 +449,7 @@ int Player::onNextMove(double end_time) {
 
             // do the rollout and gather stats
             const double rollout_start_time = get_time();
-            this->rollout->doRollout(last->getBaseState());
+            this->rollout->doRollout(last->getBaseState(), 0);
             this->playout_stats.rollout_accumulative_time += get_time() - rollout_start_time;
             this->playout_stats.rollouts++;
 

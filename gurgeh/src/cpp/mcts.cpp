@@ -813,10 +813,8 @@ void Player::onMetaGaming(double end_time) {
     K273::l_info("entering onMetaGaming() with %.1f seconds", end_time - enter_time);
 
     for (unsigned int ii=0; ii<this->config->thread_workers; ii++) {
-        StateMachineInterface* dupe_sm = this->sm->dupe();
-
         Worker* worker = new Worker(&this->worker_event_queue,
-                                    dupe_sm,
+                                    this->sm->dupe(),
                                     this->config, this->our_role_index);
         WorkerThread* worker_thread = new WorkerThread(worker);
         worker_thread->spawn();
