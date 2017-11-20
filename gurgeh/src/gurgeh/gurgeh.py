@@ -1,8 +1,56 @@
+import random
 from ggplib import interface as base_interface
-from interface import create_gurgeh_cpp_player
-from ggplib.player.proxy import CppPlayer, MatchInfo
 
-class GurgehPlayer(CppPlayer):
+from ggplib.player.proxy import ProxyPlayer
+
+from interface import create_gurgeh_cpp_player
+
+
+class MatchInfo(object):
+    def __init__(self, sm):
+        self.sm = sm
+        self.two_player_fixed_sum = True
+        self.simultaneous_game_detected = False
+
+        self.static_joint_move = self.sm.get_joint_move()
+        self.static_basestate = self.sm.new_base_state()
+
+    def do_basic_depth_charge(self):
+        ''' identifies types of moves '''
+        self.sm.reset()
+        role_count = len(self.sm.get_roles())
+
+        while True:
+            if self.sm.is_terminal():
+                break
+
+            choice_counts_more_than_1 = 0
+            for idx, r in enumerate(range(role_count)):
+                ls = self.sm.get_legal_state(idx)
+                choice = ls.get_legal(random.randrange(0, ls.get_count()))
+                self.static_joint_move.set(idx, choice)
+
+                assert ls.get_count()
+
+                if ls.get_count() > 1:
+                    choice_counts_more_than_1 += 1
+
+            if not self.simultaneous_game_detected and choice_counts_more_than_1 > 1:
+                self.simultaneous_game_detected = True
+
+            self.sm.next_state(self.static_joint_move, self.static_basestate)
+            self.sm.update_bases(self.static_basestate)
+
+        if role_count > 1:
+            total_score = 0
+            for idx, _ in enumerate(self.sm.get_roles()):
+                total_score += self.sm.get_goal_value(idx)
+
+            if total_score != 100:
+                self.two_player_fixed_sum = False
+
+
+class GurgehPlayer(ProxyPlayer):
     thread_workers = 2
     skip_single_moves = False
 
@@ -28,7 +76,7 @@ class GurgehPlayer(CppPlayer):
         role_count = len(self.sm.get_roles())
         info = MatchInfo(self.sm)
         if role_count > 1:
-            for i in range(5):
+            for _ in range(5):
                 info.do_basic_depth_charge()
 
         return create_gurgeh_cpp_player(self.sm,
@@ -56,7 +104,8 @@ class GurgehPlayer(CppPlayer):
                                         self.dump_depth,
                                         self.next_time)
 
-if __name__ == "__main__":
+
+def main():
     import sys
     from twisted.internet import reactor
     from twisted.web import server
@@ -84,3 +133,7 @@ if __name__ == "__main__":
 
     reactor.listenTCP(port, site)
     reactor.run()
+
+
+if __name__ == "__main__":
+    main()

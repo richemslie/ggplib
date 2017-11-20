@@ -190,10 +190,10 @@ def dealloc_statemachine(sm):
     sm.c_statemachine = None
 
 
-class CppProxyPlayer:
+class CppPlayerWrapper:
     def __init__(self, c_player):
         self.c_player = c_player
-        log.info("creating CppProxyPlayer with %s" % self.c_player)
+        log.info("creating CppPlayerWrapepr with %s" % self.c_player)
 
     def cleanup(self):
         lib.PlayerBase__cleanup(self.c_player)
@@ -215,15 +215,15 @@ class CppProxyPlayer:
 # IMPORTANT these players consume the statemachine sm.  It MUST not be cleaned up by the client.
 
 def create_random_player(sm, our_role_index):
-    return lib.Player__createRandomPlayer(sm.c_statemachine, our_role_index)
+    return CppPlayerWrapper(lib.Player__createRandomPlayer(sm.c_statemachine, our_role_index))
 
 
 def create_legal_player(sm, our_role_index):
-    return lib.Player__createLegalPlayer(sm.c_statemachine, our_role_index)
+    return CppPlayerWrapper(lib.Player__createLegalPlayer(sm.c_statemachine, our_role_index))
 
 
 def create_simple_mcts_player(sm, our_role_index, *args):
-    return lib.Player__createSimpleMCTSPlayer(sm.c_statemachine, our_role_index, *args)
+    return CppPlayerWrapper(lib.Player__createSimpleMCTSPlayer(sm.c_statemachine, our_role_index, *args))
 
 
 class Logging:

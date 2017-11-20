@@ -8,7 +8,7 @@ from ggplib.util import log
 from ggplib.player.base import MatchPlayer
 
 
-class MoveStat:
+class MoveStat(object):
     def __init__(self, choice, move, role_count):
         self.choice = choice
         self.move = move

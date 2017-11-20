@@ -1,8 +1,8 @@
 from ggplib.player.random_player import RandomPlayer
 from ggplib.player.legal_player import LegalPlayer
 from ggplib.player.mcs import MCSPlayer
-from ggplib.player.proxy import CppRandomPlayer, CppLegalPlayer
-from ggplib.player.proxy import SimpleMctsPlayer, GGTestPlayer1, GGTestPlayer2
+from ggplib.player.basic_cpp_players import CppRandomPlayer, CppLegalPlayer
+from ggplib.player.simplemcts import SimpleMctsPlayer, GGTestPlayer1, GGTestPlayer2
 
 
 python_players = {

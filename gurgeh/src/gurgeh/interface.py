@@ -22,13 +22,8 @@ def get_lib():
             return l
         remap = {
             "StateMachine*" : "void*",
-            "BaseState*" : "void*",
-            "LegalState*" : "void*",
-            "JointMove*" : "void*",
-            "boolean" : "int",
-            "CombinedSM*" : "void*",
             "PlayerBase*" : "void*",
-            "DepthChargeTest*" : "void*",
+            "boolean" : "int",
         }
 
         for k, v in remap.items():
@@ -63,4 +58,6 @@ def get_lib():
 ffi, lib = get_lib()
 
 def create_gurgeh_cpp_player(sm, our_role_index, *args):
-    return lib.Player__createGurgehPlayer(sm.c_statemachine, our_role_index, *args)
+    return interface.CppPlayerWrapper(lib.Player__createGurgehPlayer(sm.c_statemachine,
+                                                                     our_role_index,
+                                                                     *args))
