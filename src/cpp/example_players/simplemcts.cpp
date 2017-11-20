@@ -102,8 +102,10 @@ void Player::selectChild(Node* node) {
     ASSERT (!node->is_finalised);
 
     const int role_count = this->sm->getRoleCount();
-    const int lead_role_index = node->lead_role_index;
-    ASSERT (lead_role_index >= 0);
+    int lead_role_index = node->lead_role_index;
+    if (lead_role_index < 0) {
+        lead_role_index = this->our_role_index;
+    }
 
     double best_explore_score = -1000000;
 
