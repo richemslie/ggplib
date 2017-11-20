@@ -5,7 +5,7 @@ from ggplib.player.match import Match
 from ggplib.symbols import SymbolFactory
 
 
-class GameMaster:
+class GameMaster(object):
     def __init__(self, gdl_str):
         # used to convert to base state
         self.symbol_factory = SymbolFactory()
@@ -31,14 +31,15 @@ class GameMaster:
         self.match_id = "a_%s_match_id_%d" % (self.game, random.randint(0, 100000))
 
         log.info("GAMEMASTER: create a gamemaster for game %s" % self.game)
+        self.matches = []
 
     def add_player(self, player, role):
         self.players.append((player, role))
 
     def convert_to_base_state(self, state_str):
         state_set = set()
-        for s in self.symbol_factory.to_symbols(state_str):
-            state_set.add(s)
+        for state in self.symbol_factory.to_symbols(state_str):
+            state_set.add(state)
 
         bs = self.sm.new_base_state()
         for i in range(bs.len()):
@@ -75,9 +76,9 @@ class GameMaster:
         # reorder matches to roles (and check that we have them)
         self.matches = []
         for role in self.sm.roles:
-            for m in player_matches:
-                if role == m.role:
-                    self.matches.append(m)
+            for match in player_matches:
+                if role == match.role:
+                    self.matches.append(match)
                     break
 
         assert len(self.matches) == len(self.sm.roles)
@@ -85,9 +86,11 @@ class GameMaster:
     def play_single_move(self, last_move=None):
         actions = []
         new_last_move = []
-        for role_index, (m, role) in enumerate(zip(self.matches, self.sm.roles)):
-            log.verbose("m.do_play(%s) for %s / %s" % (last_move, role, m.player))
-            move = m.do_play(last_move)
+        for role_index, (match, role) in enumerate(zip(self.matches,
+                                                       self.sm.roles)):
+
+            log.verbose("do_play(%s) for %s / %s" % (last_move, role, match.player))
+            move = match.do_play(last_move)
             new_last_move.append(move)
 
             # check the move is in the legals
@@ -121,14 +124,14 @@ class GameMaster:
         log.verbose("Played to depth %d" % self.depth)
         log.verbose("Last move %s" % (last_move,))
 
-        for ri, r in enumerate(self.sm.get_roles()):
+        for ri, role in enumerate(self.sm.get_roles()):
             score = self.sm.get_goal_value(ri)
-            self.scores[r] = score
-            log.verbose("Final score for %s : %s " % (r, score))
+            self.scores[role] = score
+            log.verbose("Final score for %s : %s " % (role, score))
 
         # Need to do the final move for player
-        for m in self.matches:
-            assert m.do_play(last_move) == "done"
+        for match in self.matches:
+            assert match.do_play(last_move) == "done"
 
             # and stop them
-            m.do_stop()
+            match.do_stop()
