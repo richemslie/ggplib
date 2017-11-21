@@ -34,7 +34,21 @@ class SimpleMctsPlayer(ProxyPlayer):
 
 class GGTestPlayer1(SimpleMctsPlayer):
     skip_single_moves = True
-    max_tree_search_time = 3
+    max_tree_search_time = 4.0
+
+    def wait(self, finish_time):
+        # artificially slow things down (even on finalised)
+        finish_time -= 2
+        while True:
+            if time.time() > finish_time:
+                break
+
+            time.sleep(0.25)
+
+    def on_next_move(self, finish_time):
+        res = SimpleMctsPlayer.on_next_move(self, finish_time)
+        self.wait(finish_time)
+        return res
 
 
 class GGTestPlayer2(GGTestPlayer1):
@@ -59,12 +73,5 @@ class GGTestPlayer2(GGTestPlayer1):
                 res = ls.get_legal(random.randrange(0, ls.get_count()))
                 log.warning("PLAYING RANDOM MOVE was %s, now %s" % (old_res, res))
 
-        # artificially slow things down (even on finalised)
-        finish_time -= 2
-        while True:
-            if time.time() > finish_time:
-                break
-
-            time.sleep(0.5)
-
+        self.wait(finish_time)
         return res
