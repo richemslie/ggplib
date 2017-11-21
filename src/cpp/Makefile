@@ -11,7 +11,7 @@ LDFLAGS = -g -MMD -MP -Wall -Werror -Woverloaded-virtual -Wnon-virtual-dtor -O3 
 
 
 # not part of gpplib...  but include until we release k273
-SRCS += k273/exception.cpp k273/logging.cpp k273/util.cpp k273/strutils.cpp k273/stacktrace.cpp
+SRCS += k273/exception.cpp k273/logging.cpp k273/util.cpp k273/strutils.cpp k273/stacktrace.cpp k273/json.cpp
 
 SRCS += statemachine/basestate.cpp statemachine/propagate.cpp statemachine/combined.cpp
 SRCS += player/node.cpp player/rollout.cpp

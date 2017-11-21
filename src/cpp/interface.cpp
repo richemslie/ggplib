@@ -17,6 +17,7 @@
 
 #include "statemachine/jointmove.h"
 
+#include "k273/json.h"
 #include <k273/logging.h>
 #include <k273/exception.h>
 
@@ -372,16 +373,11 @@ void Log_critical(const char* msg) {
     K273::l_critical("%s", msg);
 }
 
-#include <json/json.h>
-#include <json/reader.h>
-
 void* createStateMachineFromJSON(const char* msg, int size) {
-    Json::Value root;
-    Json::Reader reader;
-    reader.parse(msg, msg+size, root);
+    K273::JsonValue root = K273::JsonValue::parseJson(msg, size);
 
     try {
-        const Json::Value& d = root["create"];
+        const K273::JsonValue d = root["create"];
 
         GGPLib::StateMachine* sm = new GGPLib::StateMachine(d["role_count"].asInt(),
                                                             d["num_bases"].asInt(),
@@ -391,7 +387,7 @@ void* createStateMachineFromJSON(const char* msg, int size) {
                                                             d["topological_size"].asInt());
 
 
-        for (Json::Value& r : root["roles"]) {
+        for (auto r : root["roles"]) {
             sm->setRole(r["role_index"].asInt(),
                         r["name"].asString().c_str(),
                         r["input_start_index"].asInt(),
@@ -401,16 +397,16 @@ void* createStateMachineFromJSON(const char* msg, int size) {
                         r["num_goals"].asInt());
         }
 
-        for (Json::Value& c : root["components"]) {
+        for (auto c : root["components"]) {
             sm->setComponent(c[0].asInt(), c[1].asInt(), c[2].asInt(), c[3].asInt(),
                              c[4].asInt(), c[5].asInt(), c[6].asInt(), c[7].asInt());
         }
 
-        for (Json::Value& o : root["outputs"]) {
+        for (auto o : root["outputs"]) {
             sm->setOutput(o[0].asInt(), o[1].asInt());
         }
 
-        for (Json::Value& m : root["metas"]) {
+        for (auto m : root["metas"]) {
             sm->setMetaInformation(m["component_id"].asInt(),
                                    m["typename"].asString(),
                                    m["gdl_str"].asString(),
@@ -425,7 +421,7 @@ void* createStateMachineFromJSON(const char* msg, int size) {
         // initial_state
         GGPLib::BaseState* bs = sm->newBaseState();
         int index = 0;
-        for (Json::Value& v : root["initial_state"]) {
+        for (auto v : root["initial_state"]) {
             bs->set(index, v.asInt());
             index++;
         }
