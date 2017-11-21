@@ -62,6 +62,7 @@ namespace GGPLib {
         std::vector <int> scores;
         K273::Random random;
 
+    public:
         static const int MAX_NUMBER_STATES = 500;
     };
 
