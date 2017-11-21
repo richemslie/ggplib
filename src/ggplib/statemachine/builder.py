@@ -241,7 +241,7 @@ class BuilderCpp(BuilderBase):
 
 def do_build(propnet, the_builder=None):
     if the_builder is None:
-        the_builder = BuilderCpp(propnet)
+        the_builder = BuilderJson(propnet)
 
     propnet.reorder_components()
     propnet.verify()
