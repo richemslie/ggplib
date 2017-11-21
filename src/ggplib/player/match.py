@@ -13,8 +13,9 @@ from ggplib import interface
 # Indicate how much time to give for communication between gamemaster and player.  This is useful
 # for when matches are scheduled at other locations around the world and the latency can cause
 # timeouts.
+# XXX Should be at http level
 
-CUSHION_TIME = 1.0
+CUSHION_TIME = 1.5
 
 ###################################################################################################
 
