@@ -17,6 +17,9 @@ props_dir = os.path.join(path_back(__file__, 1), "props")
 def kif_filename_to_propfile(kif_filename):
     basename = os.path.basename(kif_filename)
     basename = basename.replace(".", "_")
+    if basename[0] in "0123456789":
+        basename = "props_" + basename
+
     props_file = os.path.join(props_dir, basename + ".py")
     return basename, props_file
 
