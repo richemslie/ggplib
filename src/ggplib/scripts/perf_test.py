@@ -8,7 +8,7 @@ from ggplib.util import log
 from ggplib import interface
 from ggplib.db import lookup
 
-VERSION = "ggplib_v0.9999"
+VERSION = "0.9999"
 
 ###############################################################################
 
@@ -81,22 +81,21 @@ def main_3(game_file, output_file, seconds_to_run):
     sm = builder.build_sm(propnet)
 
     if debug:
-        log.verbose("GAME_FILE", game_file)
-        log.verbose("OUTPUT_FILE", output_file)
-        log.verbose("SECONDS_TO_RUN", seconds_to_run)
+        log.verbose("GAME_FILE %s" % game_file)
+        log.verbose("OUTPUT_FILE %s" % output_file)
+        log.verbose("SECONDS_TO_RUN %s" % seconds_to_run)
 
     # for the result
     f = open(output_file, "w")
 
+    print >>f, "version=%s" % VERSION
     try:
-        msecs_taken, rollouts, num_state_changes = go(sm)
+        msecs_taken, rollouts, num_state_changes = go(sm, seconds_to_run)
 
         # see gdl-perf (XXX do python3 print)
-        print >>f, "version=%s" % VERSION
-        if msecs_taken is not None:
-            print >>f, "millisecondsTaken=%s" % msecs_taken
-            print >>f, "numStateChanges=%s" % num_state_changes
-            print >>f, "numRollouts=%s" % rollouts
+        print >>f, "millisecondsTaken=%s" % msecs_taken
+        print >>f, "numStateChanges=%s" % num_state_changes
+        print >>f, "numRollouts=%s" % rollouts
 
     except Exception as exc:
         error_str = "Error %s" % exc
@@ -136,7 +135,7 @@ if __name__ == "__main__":
 
     if len(args) == 3:
         game_file = args[0]
-        output_file = args[0]
+        output_file = args[1]
         seconds_to_run = int(args[2])
 
         # gdl-perf
