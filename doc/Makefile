@@ -3,8 +3,8 @@
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
-SPHINXBUILD   = sphinx-build2
-SPHINXPROJ    = gurgeh
+SPHINXBUILD   = sphinx-build
+SPHINXPROJ    = ggplib
 SOURCEDIR     = .
 BUILDDIR      = _build
 
