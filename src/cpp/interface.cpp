@@ -21,6 +21,8 @@
 #include <k273/logging.h>
 #include <k273/exception.h>
 
+#include <string>
+
 bool k273_initialised = false;
 
 void initK273(int console, const char* filename) {
@@ -87,48 +89,24 @@ void* createGoallessStateMachine(int role_count, void* _sm1, void* _sm2) {
     return (void *) sm;
 }
 
-void* StateMachine__dupe(void* _sm) {
+void* createCombinedStateMachine(int role_count) {
+    GGPLib::CombinedStateMachine* combined = new GGPLib::CombinedStateMachine(role_count);
+    return (void *) combined;
+}
+
+void CombinedStateMachine__setGoalStateMachine(void* _combined, void* _sm) {
+    GGPLib::CombinedStateMachine* combined = static_cast<GGPLib::CombinedStateMachine*> (_combined);
     GGPLib::StateMachine* sm = static_cast<GGPLib::StateMachine*> (_sm);
-    return (void *) sm->dupe();
+    combined->setGoalStateMachine(sm);
 }
 
-void StateMachine__delete(void* _sm) {
+void CombinedStateMachine__setControlStateMachine(void* _combined, int control_index, int control_cid, void* _sm) {
+    GGPLib::CombinedStateMachine* combined = static_cast<GGPLib::CombinedStateMachine*> (_combined);
     GGPLib::StateMachine* sm = static_cast<GGPLib::StateMachine*> (_sm);
-    K273::l_verbose("Deleting statemachine %p", _sm);
-    delete sm;
+    combined->setControlStateMachine(control_index, control_cid, sm);
 }
 
-void StateMachine__setRole(void* _sm, int role_index, const char* name, int input_start_index, int legal_start_index, int goal_start_index, int num_inputs_legals, int num_goals) {
-    GGPLib::StateMachine* sm = static_cast<GGPLib::StateMachine*> (_sm);
-    sm->setRole(role_index, name, input_start_index, legal_start_index, goal_start_index, num_inputs_legals, num_goals);
-}
-
-void StateMachine__setComponent(void* _sm, int component_id, int required_count_false, int required_count_true,
-                                int output_index, int number_outputs, int initial_count, int incr, int topological_order) {
-    GGPLib::StateMachine* sm = static_cast<GGPLib::StateMachine*> (_sm);
-    sm->setComponent(component_id, required_count_false, required_count_true, output_index, number_outputs, initial_count, incr, topological_order);
-}
-
-
-void StateMachine__setOutput(void* _sm, int output_index, int component_id) {
-    GGPLib::StateMachine* sm = static_cast<GGPLib::StateMachine*> (_sm);
-    sm->setOutput(output_index, component_id);
-}
-
-void StateMachine__recordFinalise(void* _sm, int control_flows, int terminal_index) {
-    try {
-        GGPLib::StateMachine* sm = static_cast<GGPLib::StateMachine*> (_sm);
-        sm->recordFinalise(control_flows, terminal_index);
-    } catch (const K273::Assertion &exc) {
-        fprintf(stderr, "Assertion : %s\n", exc.getMessage().c_str());
-        fprintf(stderr, "Stacktrace :\n%s\n", exc.getStacktrace().c_str());
-    }
-}
-
-void StateMachine__setMetaComponent(void* _sm, int component_id, const char* component_type, const char* gdl, const char* move, int goal_value) {
-    GGPLib::StateMachine* sm = static_cast<GGPLib::StateMachine*> (_sm);
-    sm->setMetaInformation(component_id, component_type, gdl, move, goal_value);
-}
+///////////////////////////////////////////////////////////////////////////////
 
 void StateMachine__setInitialState(void* _sm, void* _bs) {
     GGPLib::StateMachineInterface* sm = static_cast<GGPLib::StateMachineInterface*> (_sm);
@@ -136,6 +114,18 @@ void StateMachine__setInitialState(void* _sm, void* _bs) {
 
     sm->setInitialState(bs);
 }
+
+void* StateMachine__dupe(void* _sm) {
+    GGPLib::StateMachine* sm = static_cast<GGPLib::StateMachine*> (_sm);
+    return (void *) sm->dupe();
+}
+
+void StateMachine__delete(void* _sm) {
+    GGPLib::StateMachine* sm = static_cast<GGPLib::StateMachine*> (_sm);
+    delete sm;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 
 void* StateMachine__newBaseState(void* _sm) {
     GGPLib::StateMachineInterface* sm = static_cast<GGPLib::StateMachineInterface*> (_sm);
@@ -220,25 +210,6 @@ void JointMove__set(void* _move, int role_index, int value) {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void* createCombinedStateMachine(int role_count) {
-    GGPLib::CombinedStateMachine* combined = new GGPLib::CombinedStateMachine(role_count);
-    return (void *) combined;
-}
-
-void CombinedStateMachine__setGoalStateMachine(void* _combined, void* _sm) {
-    GGPLib::CombinedStateMachine* combined = static_cast<GGPLib::CombinedStateMachine*> (_combined);
-    GGPLib::StateMachine* sm = static_cast<GGPLib::StateMachine*> (_sm);
-    combined->setGoalStateMachine(sm);
-}
-
-void CombinedStateMachine__setControlStateMachine(void* _combined, int control_index, int control_cid, void* _sm) {
-    GGPLib::CombinedStateMachine* combined = static_cast<GGPLib::CombinedStateMachine*> (_combined);
-    GGPLib::StateMachine* sm = static_cast<GGPLib::StateMachine*> (_sm);
-    combined->setControlStateMachine(control_index, control_cid, sm);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 void* Player__createRandomPlayer(void* _sm, int our_role_index) {
     GGPLib::StateMachineInterface* sm = static_cast<GGPLib::StateMachine*> (_sm);
     GGPLib::PlayerBase* player = new RandomPlayer::Player(sm, our_role_index);
@@ -295,6 +266,26 @@ void PlayerBase__onMetaGaming(void* _player, double end_time) {
         K273::l_critical("Assertion : x");
         K273::l_critical("Stacktrace : x");
     }
+}
+
+const char* PlayerBase__beforeApplyInfo(void* _player) {
+    // use static to keep memory around
+    static std::string res;
+    try {
+        GGPLib::PlayerBase* player = static_cast<GGPLib::PlayerBase*> (_player);
+        res = player->beforeApplyInfo();
+        return res.c_str();
+
+    } catch (const K273::Exception &exc) {
+        K273::l_critical("PlayerBase__onApplyMove");
+        K273::l_critical("Assertion : %s", exc.getMessage().c_str());
+        K273::l_critical("Stacktrace :\n%s", exc.getStacktrace().c_str());
+    } catch (...) {
+        K273::l_critical("Assertion : x");
+        K273::l_critical("Stacktrace : x");
+    }
+
+    return "";
 }
 
 void PlayerBase__onApplyMove(void* _player, void* _move) {

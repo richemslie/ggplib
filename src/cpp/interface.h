@@ -34,23 +34,18 @@ extern "C" {
     StateMachine* createStateMachine(int role_count, int num_bases, int num_transitions, int num_components, int num_ouputs, int topological_size);
     StateMachine* createGoallessStateMachine(int role_count, StateMachine*, StateMachine*);
 
+    CombinedSM* createCombinedStateMachine(int role_count);
+    void CombinedStateMachine__setGoalStateMachine(CombinedSM*, StateMachine* sm);
+    void CombinedStateMachine__setControlStateMachine(CombinedSM*, int control_index, int control_cid, StateMachine* sm);
+
+    // StateMachine initialisation:
+    void StateMachine__setInitialState(StateMachine*, BaseState* intial_state);
+
     // Duplicate a statemachine
     StateMachine* StateMachine__dupe(StateMachine*);
 
     // Delete underlying statemachine
     void StateMachine__delete(StateMachine*);
-
-    // StateMachine initialisation:
-
-    void StateMachine__setRole(StateMachine*, int role_index, const char* name, int input_start_index, int legal_start_index, int goal_start_index, int num_inputs_legals, int num_goals);
-    void StateMachine__setComponent(StateMachine*, int component_id, int required_count_false, int required_count_true,
-                                    int output_index, int number_outputs, int initial_count, int incr, int topological_order);
-    void StateMachine__setOutput(StateMachine*, int output_index, int component_id);
-    void StateMachine__recordFinalise(StateMachine*, int control_flows, int terminal_index);
-
-    void StateMachine__setMetaComponent(StateMachine*, int component_id, const char* component_type, const char* gdl, const char* move, int goal_value);
-
-    void StateMachine__setInitialState(StateMachine*, BaseState* intial_state);
 
 
     // StateMachine interface:
@@ -77,11 +72,6 @@ extern "C" {
     int JointMove__get(JointMove*, int role_index);
     void JointMove__set(JointMove*, int role_index, int value);
 
-    // Create a state machine
-    CombinedSM* createCombinedStateMachine(int role_count);
-    void CombinedStateMachine__setGoalStateMachine(CombinedSM*, StateMachine* sm);
-    void CombinedStateMachine__setControlStateMachine(CombinedSM*, int control_index, int control_cid, StateMachine* sm);
-
 
     PlayerBase* Player__createRandomPlayer(StateMachine*, int our_role_index);
     PlayerBase* Player__createLegalPlayer(StateMachine*, int our_role_index);
@@ -100,6 +90,7 @@ extern "C" {
 
     void PlayerBase__cleanup(PlayerBase*);
     void PlayerBase__onMetaGaming(PlayerBase*, double end_time);
+    const char* PlayerBase__beforeApplyInfo(PlayerBase*);
     void PlayerBase__onApplyMove(PlayerBase*, JointMove*);
     int PlayerBase__onNextMove(PlayerBase*, double end_time);
 

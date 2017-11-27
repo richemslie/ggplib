@@ -7,6 +7,8 @@
 #include <k273/logging.h>
 #include <k273/strutils.h>
 
+#include <string>
+
 namespace GGPLib {
 
     class PlayerBase {
@@ -28,8 +30,15 @@ namespace GGPLib {
         virtual void onMetaGaming(double end_time) {
         }
 
+        // called before apply move.  Gives the player an oppurtunity to return
+        // any debug/extra information.
+        virtual std::string beforeApplyInfo() {
+            return "";
+        }
+
         virtual void onApplyMove(JointMove* move) {
         }
+
 
         virtual int onNextMove(double end_time) = 0;
 
