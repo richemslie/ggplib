@@ -201,6 +201,10 @@ class CppPlayerWrapper:
     def on_meta_gaming(self, finish_time):
         lib.PlayerBase__onMetaGaming(self.c_player, finish_time)
 
+    def before_apply_info(self):
+        c_string = lib.PlayerBase__beforeApplyInfo(self.c_player)
+        return ffi.string(c_string)
+
     def on_apply_move(self, move):
         lib.PlayerBase__onApplyMove(self.c_player, move.c_joint_move)
 

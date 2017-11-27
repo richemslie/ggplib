@@ -20,6 +20,9 @@ class MatchPlayer(object):
         ' note: on_meta_gaming must use self.match.get_current_state() and NOT initial_base_state '
         pass
 
+    def before_apply_info(self):
+        return ""
+
     def on_apply_move(self, move):
         pass
 
