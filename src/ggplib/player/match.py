@@ -50,7 +50,9 @@ class Match:
         self.meta_time = meta_time
         self.move_time = move_time
 
+        self.move_info = []
         self.moves = []
+
         self.states = []
 
         # stores the last played move, to check the gamemaster returns the same move
@@ -131,6 +133,10 @@ class Match:
 
     def apply_move(self, moves):
         log.debug("apply moves: %s" % (moves,))
+
+        # we give the player an one time opportunity to return debug/extra information
+        # about the move it just played
+        self.move_info.append(self.player.before_apply_info())
 
         # get the previous state - incase our statemachine is out of sync
         self.sm.update_bases(self.get_current_state())
