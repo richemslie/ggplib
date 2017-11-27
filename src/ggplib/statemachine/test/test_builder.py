@@ -46,22 +46,7 @@ def test_building_json():
         depth_charges(sm, 1)
 
 
-def test_basic_cpp_construction():
-    for game, propnet in get_propnets():
-        print game, propnet
-        sm = builder.do_build(propnet, the_builder=builder.BuilderCpp(propnet))
-
-        # test from c++
-        log.warning("Doing depth charges on %s" % sm)
-        msecs_taken, rollouts, _ = interface.depth_charge(sm, 1)
-        rollouts_per_second = (rollouts / float(msecs_taken)) * 1000
-        log.info("rollouts per second %.2f" % rollouts_per_second)
-
-        # test from python
-        depth_charges(sm, 1)
-
-
-def test_cpp_variations():
+def test_variations():
     def go(game, fn, propnet, do_depth_charges=True):
         log.verbose("Doing %s for %s" % (fn.func_name, game))
         sm = fn(propnet)

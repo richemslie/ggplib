@@ -177,67 +177,6 @@ class BuilderJson(BuilderBase):
         return interface.StateMachine(c_statemachine,
                                       initial_base_state, roles)
 
-class BuilderCpp(BuilderBase):
-    ''' calls c++ code to construct state machine '''
-
-    def __init__(self, propnet):
-        self.propnet = propnet
-        self.build_sm = None
-        self.lib = interface.lib
-        self.c_statemachine = None
-
-    def create_state_machine(self, role_count, num_bases, num_transitions,
-                             num_components, num_outputs, topological_size):
-
-        self.c_statemachine = self.lib.createStateMachine(role_count, num_bases, num_transitions,
-                                                          num_components, num_outputs, topological_size)
-
-    def set_role(self, role_index, name, input_start_index, legal_start_index,
-                 goal_start_index, num_inputs_legals, num_goals):
-        self.lib.StateMachine__setRole(self.c_statemachine, role_index, name, input_start_index,
-                                       legal_start_index, goal_start_index,
-                                       num_inputs_legals, num_goals)
-
-    def set_meta_proposition(self, component_id, typename, gdl_str, move, goal_value):
-        self.lib.StateMachine__setMetaComponent(self.c_statemachine, component_id,
-                                                typename, gdl_str, move, goal_value)
-
-    def set_meta_transition(self, component_id, typename, gdl_str):
-        self.lib.StateMachine__setMetaComponent(self.c_statemachine, component_id, typename, gdl_str, "", -1)
-
-    def set_meta_component(self, component_id, typename):
-        self.lib.StateMachine__setMetaComponent(self.c_statemachine, component_id, typename, "", "", -1)
-
-    def set_component(self, component_id, required_count_false, required_count_true,
-                      output_index, number_outputs, initial_count, incr, topological_order):
-        self.lib.StateMachine__setComponent(self.c_statemachine, component_id, required_count_false,
-                                            required_count_true, output_index, number_outputs,
-                                            initial_count, incr, topological_order)
-
-    def set_output(self, output_index, component_id):
-        self.lib.StateMachine__setOutput(self.c_statemachine, output_index, component_id)
-
-    def finalise(self, control_flows, terminal_index):
-        self.lib.StateMachine__recordFinalise(self.c_statemachine, control_flows, terminal_index)
-
-        # set the initial state
-        initial_base_state = interface.BaseState(self.lib.StateMachine__newBaseState(self.c_statemachine))
-
-        for idx, value in enumerate(self.propnet.get_initial_state()):
-            initial_base_state.set(idx, value)
-            assert initial_base_state.get(idx) == value
-
-        self.lib.StateMachine__setInitialState(self.c_statemachine, initial_base_state.c_base_state)
-        self.lib.StateMachine__reset(self.c_statemachine)
-
-        # XXX delete basestate or was it consumed?
-
-        # get roles and initial state
-        roles = [str(ri.role) for ri in self.propnet.role_infos]
-
-        return interface.StateMachine(self.c_statemachine,
-                                      initial_base_state, roles)
-
 
 def do_build(propnet, the_builder=None):
     if the_builder is None:
