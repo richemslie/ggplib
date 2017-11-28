@@ -10,7 +10,7 @@ from ggplib.util.util import path_back
 from ggplib.propnet.factory import Propnet, create_component
 from ggplib import symbols
 
-rulesheet_dir = os.path.join(path_back(__file__, 3), "rulesheets")
+rulesheet_dir = os.path.join(path_back(__file__, 3), "data", "rulesheets")
 props_dir = os.path.join(path_back(__file__, 1), "props")
 
 

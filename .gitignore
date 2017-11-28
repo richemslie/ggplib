@@ -1,7 +1,7 @@
 # temporary/backup files
 *~
-rulesheets/tmp*
-rulesheets/*.kif
+data/rulesheets
+
 src/ggplib/props/*
 
 # c++
