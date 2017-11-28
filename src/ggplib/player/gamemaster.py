@@ -11,7 +11,9 @@ class GameMaster(object):
         self.symbol_factory = SymbolFactory()
 
         self.gdl_str = gdl_str
-        _, self.sm, self.game = lookup.by_gdl(gdl_str)
+        _, info = lookup.by_gdl(gdl_str)
+        self.sm = info.get_sm()
+        self.game = info.game
 
         # store a joint move / basestate internally
         self.joint_move = self.sm.get_joint_move()

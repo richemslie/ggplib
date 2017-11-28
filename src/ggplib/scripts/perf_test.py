@@ -108,7 +108,9 @@ def main_3(game_file, output_file, seconds_to_run):
 
 
 def main_2(game_name, seconds_to_run):
-    sm = lookup.by_name(game_name)
+    game_info = lookup.by_name(game_name)
+    sm = game_info.get_sm()
+
     msecs_taken, rollouts, num_state_changes = go(sm, seconds_to_run)
 
     log.info("====================================================")

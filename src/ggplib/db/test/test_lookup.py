@@ -54,16 +54,19 @@ def test_compare_same():
 def test_with_database():
     gdl_str = get_gdl_for_game("connectFour")
 
-    mapping, sm, game_name = lookup.by_gdl(gdl_str)
-    assert game_name == "connectFour"
+    mapping, info = lookup.by_gdl(gdl_str)
+
     assert mapping is None
+    assert info.game == "connectFour"
+    sm = info.get_sm()
 
     # ensure keeps returning valid statemachines
     for ii in range(10):
-        new_mapping, new_sm, new_game_name = lookup.by_gdl(gdl_str)
+        new_mapping, new_info = lookup.by_gdl(gdl_str)
+        new_sm = new_info.get_sm()
 
-        assert new_game_name == "connectFour"
         assert new_mapping is None
+        assert new_info is info
         assert new_sm != sm
         assert id(new_sm) != id(sm)
         assert new_sm.get_initial_state() == sm.get_initial_state()
@@ -103,8 +106,9 @@ def test_not_in_database():
   (<= terminal (true o3))
     """
 
-    mapping, sm, game_name = lookup.by_gdl(some_simple_game)
-    assert game_name == "unknown"
+    mapping, info = lookup.by_gdl(some_simple_game)
+    assert info.game == "unknown"
+    sm = info.get_sm()
 
     # run rollouts in c++
     msecs_taken, rollouts, _ = interface.depth_charge(sm, 1)
@@ -119,7 +123,10 @@ def test_lookup_for_all_games():
     for game in lookup.get_all_game_names():
         if game not in known_to_fail:
             try:
-                sm = lookup.by_name(game, build_sm=False)
+                game_info = lookup.by_name(game, build_sm=False)
+                assert game_info.game == game
+                sm = game_info.get_sm()
+
                 log.verbose("DONE GETTING Statemachine FOR GAME %s %s" % (game, sm))
             except:
                 failed.append(game)

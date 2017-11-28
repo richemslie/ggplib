@@ -74,12 +74,12 @@ class Match:
         log.debug("Match.do_start(), time = %.1f" % (end_time - enter_time))
 
         (self.gdl_symbol_mapping,
-         self.sm,
-         self.game_name) = lookup.by_gdl(self.gdl, end_time)
+         self.game_info) = lookup.by_gdl(self.gdl)
 
+        self.sm = self.game_info.get_sm()
         self.sm.reset()
         log.debug("Got state machine %s for game '%s' and match_id: %s" % (self.sm,
-                                                                           self.game_name,
+                                                                           self.game_info.game,
                                                                            self.match_id))
 
         if initial_basestate:
