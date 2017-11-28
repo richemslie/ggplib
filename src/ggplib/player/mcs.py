@@ -1,10 +1,11 @@
-
 import math
 import time
 import random
 
-from ggplib.util import log
+from collections import OrderedDict
+import json
 
+from ggplib.util import log
 from ggplib.player.base import MatchPlayer
 
 
@@ -31,7 +32,7 @@ class MoveStat(object):
 class MCSPlayer(MatchPlayer):
     max_run_time = -1
     max_iterations = -1
-    ucb_constant = 1.2
+    ucb_constant = 1.414
 
     def on_meta_gaming(self, finish_time):
         log.info("%s meta Gaming: match: %s" % (self.name, self.match.match_id))
@@ -42,6 +43,9 @@ class MCSPlayer(MatchPlayer):
         self.depth_charge_joint_move = self.sm.get_joint_move()
         self.depth_charge_state = self.sm.new_base_state()
         self.role_count = len(self.sm.get_roles())
+
+        # store the node so we can return info on move
+        self.root = None
 
     def do_depth_charge(self):
         # performs the simplest depth charge, returning our score
@@ -100,18 +104,15 @@ class MCSPlayer(MatchPlayer):
         self.depth_charge_state.assign(self.match.get_current_state())
         self.sm.update_bases(self.depth_charge_state)
 
+        self.root = {}
+
         ls = self.sm.get_legal_state(self.match.our_role_index)
         our_choices = [ls.get_legal(ii) for ii in range(ls.get_count())]
 
-        if len(our_choices) == 1:
-            choice = our_choices[0]
-            return self.sm.legal_to_move(self.match.our_role_index, choice)
-
         # now create some stats with depth charges
-        all_scores = {}
         for choice in our_choices:
             move = self.sm.legal_to_move(self.match.our_role_index, choice)
-            all_scores[choice] = MoveStat(choice, move, self.role_count)
+            self.root[choice] = MoveStat(choice, move, self.role_count)
 
         root_visits = 1
         while True:
@@ -121,6 +122,10 @@ class MCSPlayer(MatchPlayer):
             if self.max_iterations > 0 and root_visits > self.max_iterations:
                 break
 
+            if len(our_choices) == 1:
+                if root_visits > 100:
+                    break
+
             # return to current state
             self.depth_charge_state.assign(self.match.get_current_state())
             self.sm.update_bases(self.depth_charge_state)
@@ -128,7 +133,7 @@ class MCSPlayer(MatchPlayer):
             assert not self.sm.is_terminal()
 
             # select and set our move
-            choice = self.select_move(our_choices, root_visits, all_scores)
+            choice = self.select_move(our_choices, root_visits, self.root)
             self.joint_move.set(self.match.our_role_index, choice)
 
             # and a random move from other players
@@ -145,18 +150,23 @@ class MCSPlayer(MatchPlayer):
 
             # do a depth charge, and update scores
             scores = self.do_depth_charge()
-            all_scores[choice].add(scores)
+            self.root[choice].add(scores)
 
             # and update the number of visits
             root_visits += 1
 
-        log.debug("Total visits: %s" %root_visits)
+        log.debug("Total visits: %s" % root_visits)
 
+
+    def choose(self):
+        assert self.root is not None
         best_score = -1
         best_selection = None
 
         # ok - now we dump everything for debug, and return the best score
-        for stat in sorted(all_scores.values(), key=lambda x: x.get(self.match.our_role_index), reverse=True):
+        for stat in sorted(self.root.values(),
+                           key=lambda x: x.get(self.match.our_role_index),
+                           reverse=True):
             score_str = " / ".join(("%.2f" % stat.get(ii)) for ii in range(self.role_count))
             log.info("Move %s, visits %d, scored %s" % (stat.move, stat.visits, score_str))
 
@@ -165,27 +175,36 @@ class MCSPlayer(MatchPlayer):
                 best_score = s
                 best_selection = stat
 
-        log.debug("choice move = %s" % stat.move)
-
         assert best_selection is not None
+        log.debug("choice move = %s" % best_selection.move)
         return best_selection.choice
+
+    def before_apply_info(self):
+        assert self.root is not None
+
+        candidates = []
+        # ok - now we dump everything for debug, and return the best score
+        for stat in sorted(self.root.values(), key=lambda x: x.get(self.match.our_role_index), reverse=True):
+            d = OrderedDict()
+            d['choice'] = stat.choice
+            d['move'] = stat.move
+            d['visits'] = stat.visits
+            d['score'] = stat.get(self.match.our_role_index)
+            candidates.append(d)
+
+        return json.dumps(dict(candidates=candidates), indent=4)
+
+    def on_apply_move(self, move):
+        self.root = None
 
     def on_next_move(self, finish_time):
         self.sm.update_bases(self.match.get_current_state())
 
-        # all our choices
-        ls = self.sm.get_legal_state(self.match.our_role_index)
-        choices = [ls.get_legal(ii) for ii in range(ls.get_count())]
+        cur_time = time.time()
+        if self.max_run_time > 0 and cur_time + self.max_run_time < finish_time:
+            finish_time = cur_time + self.max_run_time
 
-        if len(choices) == 1:
-            # single choice, just return it.
-            return choices[0]
-
-        else:
-            cur_time = time.time()
-            if self.max_run_time > 0 and cur_time + self.max_run_time < finish_time:
-                finish_time = cur_time + self.max_run_time
-
-            # run monte carlo sims
-            return self.perform_mcs(finish_time)
+        # run monte carlo sims
+        self.perform_mcs(finish_time)
+        return self.choose()
 
