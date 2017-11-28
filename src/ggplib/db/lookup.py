@@ -28,6 +28,8 @@ import pprint
 import traceback
 from collections import OrderedDict
 
+import json
+
 from ggplib.symbols import SymbolFactory, Term, ListTerm
 from ggplib.util import log
 from ggplib.propnet import getpropnet
@@ -615,6 +617,43 @@ def get_index(gdl_str, verbose=False):
 
 ###############################################################################
 
+class Model(object):
+    def __init__(self):
+        # will populate later
+        self.roles = []
+        self.bases = []
+        self.actions = []
+
+    def to_json(self):
+        d = OrderedDict()
+        d['roles'] = self.roles
+        d['bases'] = self.bases
+        d['actions'] = self.actions
+        return json.dumps(d, indent=4)
+
+    def load_from_file(self, filename):
+        d = json.loads(open(filename).read())
+        self.roles = d["roles"]
+        self.bases = d["bases"]
+        self.actions = d["actions"]
+
+    def save_to_file(self, filename):
+        open(filename, "w").write(self.to_json())
+
+    def from_propnet(self, propnet):
+        self.roles = [ri.role for ri in propnet.role_infos]
+        self.bases = []
+        self.actions = [[] for ri in propnet.role_infos]
+
+        for b in propnet.base_propositions:
+            self.bases.append(str(b.meta.gdl))
+
+        for ri in propnet.role_infos:
+            actions = self.actions[ri.role_index]
+
+            for a in ri.inputs:
+                actions.append(str(a.meta.gdl))
+
 class GameInfo:
     def __init__(self, game, idx, sig, symbol_map):
         self.game = game
@@ -625,6 +664,7 @@ class GameInfo:
         # lazy loads
         self.propnet = None
         self.sm = None
+        self.model = None
 
     def lazy_load(self):
         if self.propnet is None:
@@ -632,6 +672,11 @@ class GameInfo:
             self.propnet = getpropnet.get_with_game(self.game)
             self.sm = builder.build_sm(self.propnet)
             log.verbose("Lazy loading done for %s" % self.game)
+
+            # create the model
+            self.model = Model()
+            self.model.from_propnet(self.propnet)
+            print self.model.to_json()
 
     def get_sm(self):
         return self.sm.dupe()
