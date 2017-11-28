@@ -10,15 +10,6 @@ from ggplib import interface
 
 ###################################################################################################
 
-# Indicate how much time to give for communication between gamemaster and player.  This is useful
-# for when matches are scheduled at other locations around the world and the latency can cause
-# timeouts.
-# XXX Should be at http level
-
-CUSHION_TIME = 1.5
-
-###################################################################################################
-
 class BadGame(Exception):
     pass
 
@@ -41,7 +32,7 @@ def replace_symbols(s, from_, to_):
 ###################################################################################################
 
 class Match:
-    def __init__(self, match_id, role, meta_time, move_time, player, gdl):
+    def __init__(self, match_id, role, meta_time, move_time, player, gdl, cushion_time=-1):
         assert gdl is not None
 
         self.match_id = match_id
@@ -49,6 +40,7 @@ class Match:
         self.gdl = gdl
         self.meta_time = meta_time
         self.move_time = move_time
+        self.cushion_time = cushion_time
 
         self.move_info = []
         self.moves = []
@@ -75,7 +67,9 @@ class Match:
             of state machine. '''
 
         enter_time = time.time()
-        end_time = enter_time + self.meta_time - CUSHION_TIME
+        end_time = enter_time + self.meta_time
+        if self.cushion_time > 0:
+            end_time -= self.cushion_time
 
         log.debug("Match.do_start(), time = %.1f" % (end_time - enter_time))
 
@@ -215,7 +209,10 @@ class Match:
         if self.sm.is_terminal():
             return "done"
 
-        end_time = enter_time + self.move_time - CUSHION_TIME
+        end_time = enter_time + self.move_time
+        if self.cushion_time > 0:
+            end_time -= self.cushion_time
+
         legal_choice = self.player.on_next_move(end_time)
 
         # we have no idea what on_next_move() left the state machine.  So reverting it back to

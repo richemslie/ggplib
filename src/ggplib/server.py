@@ -19,11 +19,20 @@ from ggplib.player import match
 from ggplib.util import log
 
 
+###################################################################################################
 # timeout if we don't hear anything for at least this time
+
 GAMESERVER_TIMEOUT = 60 * 20
 
-###############################################################################
+###################################################################################################
 
+# Indicate how much time to give for communication between gamemaster and player.  This is useful
+# for when matches are scheduled at other locations around the world and the latency can cause
+# timeouts.
+
+CUSHION_TIME = 1.5
+
+###############################################################################
 
 class GGPServer(Resource):
     ''' a server deal withs the ggp web service like protocol.  It has only one player, which is
@@ -142,7 +151,7 @@ class GGPServer(Resource):
             return "busy"
         else:
             log.info("Starting new match %s" % match_id)
-            self.current_match = match.Match(match_id, role, meta_time, move_time, self.player, gdl)
+            self.current_match = match.Match(match_id, role, meta_time, move_time, self.player, gdl, cushion_time=CUSHION_TIME)
             try:
                 # start gameserver timeout
                 self.update_gameserver_timeout(self.current_match.meta_time)
