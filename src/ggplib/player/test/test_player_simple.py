@@ -37,7 +37,7 @@ def test_tictactoe_play():
     gm.add_player(get.get_player("pyrandom"), "xplayer")
     gm.add_player(get.get_player("pylegal"), "oplayer")
 
-    gm.start()
+    gm.start(meta_time=10, move_time=5)
     gm.play_to_end()
 
     # check scores/depth make some sense
@@ -57,7 +57,7 @@ def test_tictactoe_play_test_db_lookup():
     gm.add_player(get.get_player("pyrandom"), "xplayer")
     gm.add_player(get.get_player("pylegal"), "oplayer")
 
-    gm.start()
+    gm.start(meta_time=10, move_time=5)
     gm.play_to_end()
 
     # check scores/depth make some sense
@@ -72,7 +72,7 @@ def test_tictactoe_cpp_play():
     gm.add_player(get.get_player("random"), "xplayer")
     gm.add_player(get.get_player("legal"), "oplayer")
 
-    gm.start()
+    gm.start(meta_time=10, move_time=5)
     gm.play_to_end()
 
     # check scores/depth make some sense
@@ -99,7 +99,8 @@ def test_tictactoe_take_win():
     (true (cell 1 2 b))
     (true (cell 1 1 b)) '''
 
-    gm.start(initial_basestate=gm.convert_to_base_state(str_state))
+    gm.start(meta_time=30, move_time=2,
+             initial_basestate=gm.convert_to_base_state(str_state))
 
     # play a single move - should take win
     move = gm.play_single_move()
@@ -122,7 +123,7 @@ def test_breakthrough():
     gm.add_player(get.get_player("pymcs"), "white")
     gm.add_player(get.get_player("ggtest1"), "black")
 
-    gm.start(meta_time=30, move_time=5)
+    gm.start(meta_time=30, move_time=0.5)
     gm.play_to_end()
 
     # hopefully simplemcts wins!  Not a great test.
@@ -166,5 +167,5 @@ def test_not_in_db():
     gm.add_player(get.get_player("pyrandom"), "black")
     gm.add_player(get.get_player("ggtest1"), "white")
 
-    gm.start()
+    gm.start(meta_time=10, move_time=5)
     gm.play_to_end()
