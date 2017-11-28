@@ -84,6 +84,8 @@ class GameMaster(object):
         assert len(self.matches) == len(self.sm.roles)
 
     def play_single_move(self, last_move=None):
+        assert not self.finished()
+
         actions = []
         new_last_move = []
         for role_index, (match, role) in enumerate(zip(self.matches,
@@ -114,11 +116,13 @@ class GameMaster(object):
         self.depth += 1
         return tuple(new_last_move)
 
-    def play_to_end(self, last_move=None):
-        while True:
-            if self.sm.is_terminal():
-                break
 
+    def finished(self):
+        return self.sm.is_terminal()
+
+
+    def play_to_end(self, last_move=None):
+        while not self.finished():
             last_move = self.play_single_move(last_move)
 
         log.verbose("Played to depth %d" % self.depth)
