@@ -1,6 +1,6 @@
 # temporary/backup files
 *~
-data/rulesheets
+data/
 
 src/ggplib/props/*
 
