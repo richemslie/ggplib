@@ -1,19 +1,17 @@
-import time
 import traceback
 
 import json
 
 from ggplib.util import log
 from ggplib import interface
-from ggplib.propnet.constants import OR, AND, NOT, PROPOSITION, TRANSITION, MAX_FAN_OUT_SIZE
-
-DEBUG = False
-
+from ggplib.propnet.constants import (OR, AND, NOT, PROPOSITION,
+                                      TRANSITION, MAX_FAN_OUT_SIZE)
+from ggplib.propnet import getpropnet
+from ggplib.statemachine.controls import get_and_test_control_bases
+from ggplib.statemachine.model import StateMachineModel
 
 class BuilderBase:
     ''' Just prints what it would do '''
-    def __init__(self, propnet):
-        self.propnet = propnet
 
     def create_state_machine(self, role_count, num_bases, num_transitions,
                              num_components, num_outputs, topological_size):
@@ -79,6 +77,9 @@ class BuilderBase:
             component_str = str(component_id)
         print("output_index(%d) -> %s" % (output_index, component_str))
 
+    def set_initial_state(self, initial_state):
+        print("initial_state: %s" % (initial_state,))
+
     def finalise(self, control_flows, terminal_index):
         print("********")
         print("finalise - control_flows %d, terminal_index %d" % (control_flows, terminal_index))
@@ -86,11 +87,10 @@ class BuilderBase:
         print("")
         return None
 
-
-class BuilderJson(BuilderBase):
-    ''' Just prints what it would do '''
-    def __init__(self, propnet):
-        self.propnet = propnet
+class BuilderDescription(BuilderBase):
+    ''' Builds a dictionary description of the statemachine.  Can be sent via json to build
+        remotely. '''
+    def __init__(self):
         self.create_dict = None
         self.roles = []
         self.metas = []
@@ -145,42 +145,26 @@ class BuilderJson(BuilderBase):
         output = (output_index, component_id)
         self.outputs.append(output)
 
+    def set_initial_state(self, initial_state):
+        # python list of 0 and 1s
+        self.initial_state = initial_state
+
     def finalise(self, control_flows, terminal_index):
-        master = dict(create=self.create_dict,
-                      roles=self.roles,
-                      metas=self.metas,
-                      components=self.components,
-                      outputs=self.outputs,
-                      initial_state=self.propnet.get_initial_state(),
-                      control_flows=control_flows,
-                      terminal_index=terminal_index)
-        log.verbose("Before dumps()")
-        buf = json.dumps(master)
-        log.verbose("after dumps()")
-
-        c_statemachine = interface.create_statemachine_from_json(buf)
-        log.verbose("after sm creation")
-
-        # XXX WHY> DONT DO THIS
-        # get roles and initial state
-        roles = [str(ri.role) for ri in self.propnet.role_infos]
-
-        # XXX OR THIS
-        # set the initial state
-        initial_base_state = interface.BaseState(self.lib.StateMachine__newBaseState(c_statemachine))
-
-        for idx, value in enumerate(self.propnet.get_initial_state()):
-            initial_base_state.set(idx, value)
-            assert initial_base_state.get(idx) == value
-
-
-        return interface.StateMachine(c_statemachine,
-                                      initial_base_state, roles)
+        return dict(create=self.create_dict,
+                    roles=self.roles,
+                    metas=self.metas,
+                    components=self.components,
+                    outputs=self.outputs,
+                    initial_state=self.initial_state,
+                    control_flows=control_flows,
+                    terminal_index=terminal_index)
 
 
 def do_build(propnet, the_builder=None):
+    ''' takes propnet and does some building (depends on the_builder) '''
+
     if the_builder is None:
-        the_builder = BuilderJson(propnet)
+        the_builder = BuilderDescription()
 
     propnet.reorder_components()
     propnet.verify()
@@ -254,18 +238,22 @@ def do_build(propnet, the_builder=None):
         if c.component_type in (AND, OR, NOT):
             total_control_flow += 1
 
+    the_builder.set_initial_state(propnet.get_initial_state())
+
     return the_builder.finalise(total_control_flow, propnet.terminal_proposition.cid)
 
 
 ###############################################################################
+
+def build_standard_sm(propnet):
+    return do_build(propnet.dupe())
+
 
 def build_goals_only_sm(propnet):
     propnet = propnet.dupe()
 
     log.info("Building terminal/goal based state machine")
 
-    if DEBUG:
-        print "Stripping inputs"
     propnet.strip_inputs()
     s = propnet.all_inbound().union(propnet.all_outbound(do_legals=False,
                                                          do_transitions=False))
@@ -275,120 +263,16 @@ def build_goals_only_sm(propnet):
     propnet.transitions = []
     for ri in propnet.role_infos:
         ri.legals = []
-    if DEBUG:
-        print "goal builder - final optimze"
     propnet.ensure_valid()
     propnet.optimize()
 
     propnet.print_summary()
-    print
 
     return do_build(propnet)
 
 
-def build_combined_state_machine(propnet):
-    from ggplib.statemachine.forwards import FwdStateMachineAnalysis, depth_charges
-    from ggplib.statemachine.controls import do_we_have_control_bases, get_control_flow_states, ControlBase
-
-    from ggplib.propnet import trace
-
-    log.info("Building combined based state machine")
-
-    controls = trace.get_controls(propnet)
-
-    loop_controls = get_control_flow_states(controls)
-    if len(loop_controls) == 1:
-        loop_control = loop_controls.pop()
-        control_bases = ControlBase(list(loop_control.bases), strip_goals=True)
-        return build_combined_state_machine_refactoring(propnet.dupe(), control_bases)
-
-    # elif len(loop_controls) == 2:
-    #    split_network_1 = do_split_network(propnet, loop_controls, 0, 1)
-    #    split_network_2 = do_split_network(propnet, loop_controls, 1, 0)
-
-    # fall back to statistical methods
-    test_sm = FwdStateMachineAnalysis(propnet)
-
-    # run for 1 second
-    if DEBUG:
-        print 'Start', test_sm
-    depth_charges(test_sm, 1)
-
-    # determine most used props
-    most_used_props = [(sum(visits for visits, _ in x.store_propagates), x)
-                       for x in propnet.base_propositions + propnet.input_propositions]
-    most_used_props.sort(reverse=True)
-    control_bases = do_we_have_control_bases(propnet, most_used_props, strip_goals=True)
-    if DEBUG:
-        print "CONTROL_BASES:", control_bases
-    if not control_bases:
-        return None
-
-    return build_combined_state_machine_refactoring(propnet.dupe(), control_bases, strip_goals=True)
-
-
-# XXX think the name of this function is a hint (it is a mess)
-def build_combined_state_machine_refactoring(propnet, control_bases, strip_goals=True):
-    from ggplib import interface
-    from ggplib.statemachine.forwards import FwdStateMachineAnalysis, FwdStateMachineCombined, play_comparison
-    test_sm = FwdStateMachineAnalysis(propnet)
-    test_sm.update_bases(propnet.get_initial_state())
-
-    control_bases.constant_propagate(propnet)
-
-    goal_propnet = None
-    if strip_goals:
-        goal_propnet = propnet.dupe()
-    combined_py_sm = FwdStateMachineCombined(control_bases.networks, goal_propnet=goal_propnet)
-    success = True
-    try:
-        # test it for second
-        end_time = time.time() + 1.0
-        count = 0
-        while time.time() < end_time:
-            play_comparison(combined_py_sm, test_sm, verbose=False)
-            count += 1
-
-    except Exception, exc:
-        print exc
-        traceback.print_exc()
-        success = False
-
-    if not success:
-        log.warning("Failed to run sucessful rollouts in combined statemachine")
-        return None
-
-    log.info("Ok played for one second in combined statemachine, did %s sucessful rollouts" % count)
-
-
-    # the combined statemachine
-    c_statemachine = interface.lib.createCombinedStateMachine(len(control_bases.networks))
-
-    if strip_goals:
-        # create and add goal statemachine
-        goal_sm = build_goals_only_sm(propnet)
-        interface.lib.CombinedStateMachine__setGoalStateMachine(c_statemachine, goal_sm.c_statemachine)
-
-    # create and add control statemachine
-    control_sm = None
-    for idx, p in enumerate(control_bases.networks):
-        control_sm = do_build(p)
-        interface.lib.CombinedStateMachine__setControlStateMachine(c_statemachine, idx,
-                                                                   p.fixed_base.cid,
-                                                                   control_sm.c_statemachine)
-
-    # this needs to be called after setting the controls
-    interface.lib.StateMachine__reset(c_statemachine)
-
-    assert control_sm is not None
-    combined_sm = interface.StateMachine(c_statemachine, control_sm.get_initial_state(), control_sm.get_roles())
-
-    return combined_sm
-
 def build_goalless_sm(propnet):
-    from ggplib import interface
-    propnet = propnet.dupe()
-    goal_sm = build_goals_only_sm(propnet)
+    goal_sm_result = build_goals_only_sm(propnet.dupe())
 
     # strip goals in propnet
     propnet = propnet.dupe()
@@ -406,38 +290,116 @@ def build_goalless_sm(propnet):
 
     propnet.ensure_valid()
 
-    goalless_sm = do_build(propnet)
+    goalless_sm_result = do_build(propnet)
 
-    role_count = len(propnet.role_infos)
-
-    c_statemachine = interface.lib.createGoallessStateMachine(role_count,
-                                                              goalless_sm.c_statemachine,
-                                                              goal_sm.c_statemachine)
-
-    return interface.StateMachine(c_statemachine, goal_sm.get_initial_state(), goal_sm.get_roles())
+    return dict(role_count=len(propnet.role_infos),
+                goal_sm=goal_sm_result,
+                goalless_sm=goalless_sm_result)
 
 
-def build_standard_sm(propnet):
-    propnet = propnet.dupe()
-    return do_build(propnet)
+def build_combined_state_machine(propnet):
+    control_bases = get_and_test_control_bases(propnet)
+    if control_bases is None:
+        return None
+
+    log.info("Building combined based state machine")
+
+    # create and add goal statemachine
+    goal_sm_result = build_goals_only_sm(propnet)
+
+    control_sms_result = []
+    for idx, p in enumerate(control_bases.networks):
+        sm_desc = do_build(p)
+
+        # attach some extra info (easiest to process in c++)
+        sm_desc["idx"] = idx
+        sm_desc["control_cid"] = p.fixed_base.cid
+        control_sms_result.append(sm_desc)
+
+    return dict(num_controls=len(control_sms_result),
+                goal_sm=goal_sm_result,
+                control_sms=control_sms_result)
+
 
 ###############################################################################
+# the api to getting statemachine.  No propnet downwind of this.
+###############################################################################
 
-def build_sm(propnet, combined=True):
+def build_sm(gdl_str,
+             try_combined=True,
+             no_goalless=False,
+             the_game_store=None,
+             add_to_game_store=None):
+
+    # bypasses everything below
+    if the_game_store is not None:
+        if the_game_store.file_exists("sm_info.json"):
+            sm_info = the_game_store.load_json("sm_info.json")
+            preferred = sm_info['preferred']
+
+            model = StateMachineModel()
+            model.from_description(sm_info["model"])
+
+            if preferred == "standard":
+                json_str = the_game_store.load_contents("standard_sm.json")
+                sm = interface.create_statemachine(json_str, model.roles)
+
+            elif preferred == "goalless":
+                json_str = the_game_store.load_contents("goalless_sm.json")
+                sm = interface.create_goalless_statemachine(json_str, model.roles)
+
+            elif preferred =="combined":
+                json_str = the_game_store.load_contents("combined_sm.json")
+                sm = interface.create_combined_statemachine(json_str, model.roles)
+
+            else:
+                assert False, "WHAT IS THIS? %s" % preferred
+
+            return model, sm
+
+
+    propnet = getpropnet.get_with_gdl(gdl_str)
     role_count = len(propnet.role_infos)
 
+    model = StateMachineModel()
+    model.from_propnet(propnet)
+
     sm = None
-    if combined and role_count == 2:
-        # this is a try except because we can fail for any that doesn't have controls...
-        # XXX this is unclean.  Better to return None from build_combined_state_machine
-        try:
-            sm = build_combined_state_machine(propnet)
-        except Exception, exc:
-            print exc
-            traceback.print_exc()
+    json_str = None
+    preferred = None
+
+    # guess and see
+    if try_combined and role_count == 2:
+        desc = build_combined_state_machine(propnet)
+        if desc:
+            json_str = json.dumps(desc)
+            sm = interface.create_combined_statemachine(json_str, model.roles)
+            preferred = "combined"
 
     if sm is None:
-        sm = build_goalless_sm(propnet)
-        # sm = build_standard_sm(propnet)
+        if no_goalless:
+            desc = build_standard_sm(propnet)
+            json_str = json.dumps(desc)
+            sm = interface.create_statemachine(json_str, model.roles)
+            preferred = "standard"
+        else:
+            desc = build_goalless_sm(propnet)
+            json_str = json.dumps(desc)
+            sm = interface.create_goalless_statemachine(json_str, model.roles)
+            preferred = "goalless"
 
-    return sm
+    assert sm is not None and json_str is not None and preferred is not None
+
+    if the_game_store is not None and add_to_game_store:
+
+        sm_info_desc = dict(preferred=preferred,
+                            model=model.to_description())
+
+        filename_map = dict(standard="standard_sm.json",
+                            goalless="goalless_sm.json",
+                            combined="combined_sm.json")
+
+        the_game_store.save_contents(filename_map[preferred], json_str)
+        the_game_store.save_json("sm_info.json", sm_info_desc)
+
+    return model, sm

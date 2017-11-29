@@ -66,7 +66,7 @@ def depth_charges(sm, seconds):
     log.info("average time msecs %s" % ((seconds / rollouts) * 1000))
     log.info("average depth %s" % (num_state_changes / rollouts))
 
-    for ri, role in enumerate(sm.roles):
+    for ri, role in enumerate(sm.get_roles()):
         total_score = sum(all_scores[ri])
         log.info("average score for %s : %s" % (role, total_score / float(rollouts)))
 

@@ -74,11 +74,8 @@ def go(sm, seconds_to_run):
 
 def main_3(game_file, output_file, seconds_to_run):
     # builds without accessing database database
-    from ggplib.propnet import getpropnet
-    from ggplib.statemachine import builder
-
-    propnet = getpropnet.get_with_filename(game_file)
-    sm = builder.build_sm(propnet)
+    _, game_info = lookup.by_gdl(open(game_file).read())
+    sm = game_info.get_sm()
 
     if debug:
         log.verbose("GAME_FILE %s" % game_file)

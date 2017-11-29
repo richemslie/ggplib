@@ -71,12 +71,9 @@ def get_with_filename(filename):
     return propnet
 
 
-def get_filename_for_game(game):
-    return os.path.join(rulesheet_dir, game + ".kif")
-
-
 def get_with_game(game):
-    return get_with_filename(get_filename_for_game(game))
+    filename = os.path.join(rulesheet_dir, game + ".kif")
+    return get_with_filename(filename)
 
 
 def get_with_gdl(gdl, name_hint=""):
@@ -100,13 +97,15 @@ def get_with_gdl(gdl, name_hint=""):
         print >>f, l
     f.close()
 
-    propnet = get_with_filename(fn)
+    try:
+        propnet = get_with_filename(fn)
 
-    # cleanup temp files afterwards
-    basename, props_file = kif_filename_to_propfile(fn)
-    os.remove(fn)
-    os.remove(props_file)
-    for f in glob.glob(os.path.join(props_dir, "__pycache__", basename) + '*.pyc'):
-        os.remove(str(f))
+    finally:
+        # cleanup temp files afterwards
+        basename, props_file = kif_filename_to_propfile(fn)
+        os.remove(fn)
+        os.remove(props_file)
+        for f in glob.glob(os.path.join(props_dir, "__pycache__", basename) + '*.pyc'):
+            os.remove(str(f))
 
     return propnet

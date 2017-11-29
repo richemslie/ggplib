@@ -77,13 +77,13 @@ class GameMaster(object):
 
         # reorder matches to roles (and check that we have them)
         self.matches = []
-        for role in self.sm.roles:
+        for role in self.sm.get_roles():
             for match in player_matches:
                 if role == match.role:
                     self.matches.append(match)
                     break
 
-        assert len(self.matches) == len(self.sm.roles)
+        assert len(self.matches) == len(self.sm.get_roles())
 
     def play_single_move(self, last_move=None):
         assert not self.finished()
@@ -91,7 +91,7 @@ class GameMaster(object):
         actions = []
         new_last_move = []
         for role_index, (match, role) in enumerate(zip(self.matches,
-                                                       self.sm.roles)):
+                                                       self.sm.get_roles())):
 
             log.verbose("do_play(%s) for %s / %s" % (last_move, role, match.player))
             move = match.do_play(last_move)

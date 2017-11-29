@@ -19,7 +19,6 @@ def get_lib():
             "LegalState*" : "void*",
             "JointMove*" : "void*",
             "boolean" : "int",
-            "CombinedSM*" : "void*",
             "PlayerBase*" : "void*",
             "DepthChargeTest*" : "void*",
         }
@@ -89,6 +88,8 @@ def dealloc_basestate(s):
     s.c_base_state = None
 
 
+###############################################################################
+
 class LegalState:
     def __init__(self, c_legal_state):
         self.c_legal_state = c_legal_state
@@ -99,6 +100,7 @@ class LegalState:
     def get_legal(self, index):
         return lib.LegalState__getLegal(self.c_legal_state, index)
 
+###############################################################################
 
 class JointMove:
     def __init__(self, c_joint_move):
@@ -115,29 +117,29 @@ def dealloc_jointmove(joint_move):
     log.critical("IMPLEMENT ME: dealloc_jointmove")
     joint_move.c_joint_move = None
 
+###############################################################################
 
 class StateMachine:
-    def __init__(self, c_statemachine, initial_base_state, roles):
+    def __init__(self, c_statemachine, roles):
         self.c_statemachine = c_statemachine
-        self.initial_base_state = initial_base_state
-        self.roles = roles
+        self._roles = roles
 
         # initial state has to be set here on c_statemachine
         self.reset()
 
+    def get_roles(self):
+        return self._roles
+
     def dupe(self):
         new_c_statemachine = lib.StateMachine__dupe(self.c_statemachine)
-        sm = StateMachine(new_c_statemachine, self.get_initial_state(), self.roles)
+        sm = StateMachine(new_c_statemachine, self._roles)
         log.warning("Duped from %s to %s" % (self, sm))
         return sm
 
     def get_initial_state(self):
         bs = self.new_base_state()
-        bs.assign(self.initial_base_state)
+        lib.StateMachine__getInitialState(self.c_statemachine, bs.c_base_state)
         return bs
-
-    def get_roles(self):
-        return self.roles
 
     def new_base_state(self):
         return BaseState(lib.StateMachine__newBaseState(self.c_statemachine))
@@ -153,8 +155,6 @@ class StateMachine:
         return ffi.string(c_charstar)
 
     def legal_to_move(self, role_index, choice):
-        # I seem to have a habit of calling role_index/choice in the wrong order.  Hence the assert
-        assert 0 <= role_index < len(self.get_roles())
         c_charstar = lib.StateMachine__legalToMove(self.c_statemachine, role_index, choice)
         return ffi.string(c_charstar)
 
@@ -184,11 +184,28 @@ class StateMachine:
         return " ".join([self.get_gdl(i) for i in range(bs.len()) if bs.get(i)])
 
 
+def create_statemachine(buf, roles):
+    c_statemachine = lib.createStateMachineFromJSON(buf, len(buf))
+    return StateMachine(c_statemachine, roles)
+
+
+def create_goalless_statemachine(buf, roles):
+    c_statemachine = lib.createGoallessStateMachineFromJSON(buf, len(buf))
+    return StateMachine(c_statemachine, roles)
+
+
+def create_combined_statemachine(buf, roles):
+    c_statemachine = lib.createCombinedStateMachineFromJSON(buf, len(buf))
+    return StateMachine(c_statemachine, roles)
+
+
 def dealloc_statemachine(sm):
     ' called to explicitly delete the underlying statemachine '
     lib.StateMachine__delete(sm.c_statemachine)
     sm.c_statemachine = None
 
+
+###############################################################################
 
 class CppPlayerWrapper:
     def __init__(self, c_player):
@@ -202,8 +219,8 @@ class CppPlayerWrapper:
         lib.PlayerBase__onMetaGaming(self.c_player, finish_time)
 
     def before_apply_info(self):
-        c_string = lib.PlayerBase__beforeApplyInfo(self.c_player)
-        return ffi.string(c_string)
+        c_charstar = lib.PlayerBase__beforeApplyInfo(self.c_player)
+        return ffi.string(c_charstar)
 
     def on_apply_move(self, move):
         lib.PlayerBase__onApplyMove(self.c_player, move.c_joint_move)
@@ -230,6 +247,8 @@ def create_simple_mcts_player(sm, our_role_index, *args):
     return CppPlayerWrapper(lib.Player__createSimpleMCTSPlayer(sm.c_statemachine, our_role_index, *args))
 
 
+###############################################################################
+
 class Logging:
     def verbose(self, msg):
         lib.Log_verbose(msg)
@@ -249,6 +268,7 @@ class Logging:
     def critical(self, msg):
         lib.Log_critical(msg)
 
+###############################################################################
 
 def depth_charge(sm, seconds):
     c_obj = lib.DepthChargeTest__create(sm.c_statemachine)
@@ -260,11 +280,6 @@ def depth_charge(sm, seconds):
     lib.DepthChargeTest__delete(c_obj)
 
     return msecs, rollouts, num_state_changes
-
-
-def create_statemachine_from_json(buf):
-    return lib.createStateMachineFromJSON(buf, len(buf))
-
 
 ###############################################################################
 

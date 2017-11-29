@@ -6,7 +6,8 @@ import py
 
 from ggplib.util import log
 
-from ggplib.db import lookup
+from ggplib.db import lookup, signature
+from ggplib.db.helper import get_gdl_for_game
 
 from ggplib import interface
 from ggplib.statemachine.depthcharges import depth_charges
@@ -27,18 +28,12 @@ def setup():
         lookup.get_database()
 
 
-def get_gdl_for_game(game):
-    from ggplib.propnet.getpropnet import get_filename_for_game
-    f = open(get_filename_for_game(game))
-    return f.read()
-
-
 def test_compare_same():
     game_a = get_gdl_for_game("ticTacToe")
     game_b = get_gdl_for_game("ticTacToe")
 
-    idx1, sig1 = lookup.get_index(game_a, verbose=False)
-    idx2, sig2 = lookup.get_index(game_b, verbose=False)
+    idx1, sig1 = signature.get_index(game_a, verbose=False)
+    idx2, sig2 = signature.get_index(game_b, verbose=False)
 
     sigs1 = sig1.sigs[:]
     sigs1.sort()
@@ -117,7 +112,8 @@ def test_not_in_database():
 
 
 def test_lookup_for_all_games():
-    py.test.skip("this is super slow")
+    py.test.skip("this is super slow first time around")
+
     failed = []
     known_to_fail = ['amazonsTorus_10x10', 'atariGoVariant_7x7', 'gt_two_thirds_4p', 'gt_two_thirds_6p', 'linesOfAction']
     for game in lookup.get_all_game_names():
@@ -128,7 +124,8 @@ def test_lookup_for_all_games():
                 sm = game_info.get_sm()
 
                 log.verbose("DONE GETTING Statemachine FOR GAME %s %s" % (game, sm))
-            except:
+            except lookup.LookupFailed as exc:
+                log.warning("Failed to lookup %s: %s" % (game, exc))
                 failed.append(game)
 
     if failed:

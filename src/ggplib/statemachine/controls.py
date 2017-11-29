@@ -1,8 +1,15 @@
+import time
+from pprint import pprint
+
+from ggplib.util import log
+from ggplib import symbols
+
 from ggplib.propnet.constants import PROPOSITION, MAX_FAN_OUT_SIZE
 from ggplib.propnet.factory import ConstantPropagator
-from ggplib import symbols
-from pprint import pprint
-from ggplib.util import log
+from ggplib.propnet import trace
+
+from ggplib.statemachine.forwards import FwdStateMachineAnalysis, FwdStateMachineCombined, depth_charges, play_comparison
+
 
 DEBUG = False
 
@@ -240,3 +247,71 @@ def print_most_used_props(propnet, show_count=10):
 
     # XXX hack to keep things working
     return most_used_props
+
+
+def get_control_bases(propnet):
+    controls = trace.get_controls(propnet)
+
+    loop_controls = get_control_flow_states(controls)
+    if len(loop_controls) == 1:
+        loop_control = loop_controls.pop()
+        control_bases = ControlBase(list(loop_control.bases), strip_goals=True)
+        return control_bases
+
+    # elif len(loop_controls) == 2:
+    #    split_network_1 = do_split_network(propnet, loop_controls, 0, 1)
+    #    split_network_2 = do_split_network(propnet, loop_controls, 1, 0)
+
+    # fall back to statistical methods
+    test_sm = FwdStateMachineAnalysis(propnet)
+
+    # run for 1 second
+    if DEBUG:
+        print 'Start', test_sm
+    depth_charges(test_sm, 1)
+
+    # determine most used props
+    most_used_props = [(sum(visits for visits, _ in x.store_propagates), x)
+                       for x in propnet.base_propositions + propnet.input_propositions]
+    most_used_props.sort(reverse=True)
+    control_bases = do_we_have_control_bases(propnet, most_used_props, strip_goals=True)
+
+
+def get_and_test_control_bases(propnet):
+    try:
+        control_bases = get_control_bases(propnet)
+        if control_bases is None:
+            return None
+
+        test_sm = FwdStateMachineAnalysis(propnet)
+        test_sm.update_bases(propnet.get_initial_state())
+
+        control_bases.constant_propagate(propnet)
+
+        # this is some kind of hack??? XXX
+        goal_propnet = propnet.dupe()
+
+
+        combined_py_sm = FwdStateMachineCombined(control_bases.networks,
+                                                 goal_propnet=goal_propnet)
+        success = True
+
+        # test it for second
+        end_time = time.time() + 1.0
+        count = 0
+        while time.time() < end_time:
+            play_comparison(combined_py_sm, test_sm, verbose=False)
+            count += 1
+
+    except Exception, exc:
+        print exc
+        traceback.print_exc()
+        success = False
+
+    if not success:
+        log.warning("Failed to run sucessful rollouts in combined statemachine")
+        return None
+
+    log.info("Ok played for one second in combined statemachine, did %s sucessful rollouts" % count)
+
+    return control_bases

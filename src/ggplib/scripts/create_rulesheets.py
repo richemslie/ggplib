@@ -87,9 +87,14 @@ import os
 import re
 import sys
 
-from ggplib.propnet.getpropnet import rulesheet_dir
+from ggplib.db.store import get_root
+
+
 
 def main():
+    root_store = get_root()
+    rulesheets_store = root_store.get_directory("rulesheets")
+
     pattern = r'"([A-Za-z0-9_\./\\-]*)"'
     games = re.findall(pattern, text)
 
@@ -127,7 +132,7 @@ def main():
     # just copy to our destination_path the kif files
     for game in games:
         fn = mapping[game][1]
-        cmd = "cp %s %s/%s.kif" % (fn, rulesheet_dir, game)
+        cmd = "cp %s %s/%s.kif" % (fn, rulesheets_store.path, game)
         print cmd
         os.system(cmd)
 

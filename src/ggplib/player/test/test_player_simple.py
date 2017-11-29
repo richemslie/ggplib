@@ -1,7 +1,6 @@
 from ggplib.player import get
 from ggplib.player.gamemaster import GameMaster
-from ggplib.propnet.getpropnet import get_filename_for_game
-from ggplib.db.lookup import get_database
+from ggplib.db.helper import get_gdl_for_game
 
 _setup_once = False
 
@@ -17,21 +16,9 @@ def setup():
         import ggplib.util.log
         ggplib.util.log.initialise()
 
-        # pre-initialise database - used in match for remapping
-        get_database()
-
-
-def get_game(game, replace_map=None):
-    filename = get_filename_for_game(game)
-    contents = open(filename).read()
-    if replace_map:
-        for k, v in replace_map.items():
-            contents.replace(k, v)
-    return contents
-
 
 def test_tictactoe_play():
-    gm = GameMaster(get_game("ticTacToe"))
+    gm = GameMaster(get_gdl_for_game("ticTacToe"))
 
     # add two python players
     gm.add_player(get.get_player("pyrandom"), "xplayer")
@@ -46,10 +33,10 @@ def test_tictactoe_play():
 
 
 def test_tictactoe_play_test_db_lookup():
-    game_gdl_str = get_game("ticTacToe", dict(mark="kram",
-                                              noop="notamove",
-                                              cell="bell",
-                                              oplayer="doobie"))
+    game_gdl_str = get_gdl_for_game("ticTacToe", dict(mark="kram",
+                                                      noop="notamove",
+                                                      cell="bell",
+                                                      oplayer="doobie"))
 
     gm = GameMaster(game_gdl_str)
 
@@ -66,7 +53,7 @@ def test_tictactoe_play_test_db_lookup():
 
 
 def test_tictactoe_cpp_play():
-    gm = GameMaster(get_game("ticTacToe"))
+    gm = GameMaster(get_gdl_for_game("ticTacToe"))
 
     # add two c++ players
     gm.add_player(get.get_player("random"), "xplayer")
@@ -81,7 +68,7 @@ def test_tictactoe_cpp_play():
 
 
 def test_tictactoe_take_win():
-    gm = GameMaster(get_game("ticTacToe"))
+    gm = GameMaster(get_gdl_for_game("ticTacToe"))
 
     # add two c++ players
     gm.add_player(get.get_player("ggtest1"), "xplayer")
@@ -117,13 +104,13 @@ def test_tictactoe_take_win():
 
 def test_breakthrough():
     ' mcs player vs ggtest1 '
-    gm = GameMaster(get_game("breakthrough"))
+    gm = GameMaster(get_gdl_for_game("breakthrough"))
 
     # add two c++ players
     gm.add_player(get.get_player("pymcs"), "white")
     gm.add_player(get.get_player("ggtest1"), "black")
 
-    gm.start(meta_time=30, move_time=0.5)
+    gm.start(meta_time=30, move_time=1.0)
     gm.play_to_end()
 
     # hopefully simplemcts wins!  Not a great test.
