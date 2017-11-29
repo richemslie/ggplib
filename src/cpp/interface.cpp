@@ -35,6 +35,23 @@ void initK273(int console, const char* filename) {
     k273_initialised = true;
 }
 
+static void logExceptionWrapper(const std::string& name) {
+    try {
+        K273::l_critical("an exception was thrown in in %s:", name.c_str());
+        throw;
+
+    } catch (const K273::Exception& exc) {
+        K273::l_critical("K273::Exception Message : %s", exc.getMessage().c_str());
+        K273::l_critical("K273::Exception Stacktrace : \n%s", exc.getStacktrace().c_str());
+
+    } catch (std::exception& exc) {
+        K273::l_critical("std::exception What : %s", exc.what());
+
+    } catch (...) {
+        K273::l_critical("Unknown exception");
+    }
+}
+
 // basestate
 
 int BaseState__get(void* _bs, int index) {
@@ -234,13 +251,8 @@ void PlayerBase__onMetaGaming(void* _player, double end_time) {
     try {
         GGPLib::PlayerBase* player = static_cast<GGPLib::PlayerBase*> (_player);
         player->onMetaGaming(end_time);
-    } catch (const K273::Exception &exc) {
-        K273::l_critical("PlayerBase__onMetaGaming");
-        K273::l_critical("Assertion : %s", exc.getMessage().c_str());
-        K273::l_critical("Stacktrace : \n%s", exc.getStacktrace().c_str());
     } catch (...) {
-        K273::l_critical("Assertion : x");
-        K273::l_critical("Stacktrace : x");
+        logExceptionWrapper(__PRETTY_FUNCTION__);
     }
 }
 
@@ -252,13 +264,8 @@ const char* PlayerBase__beforeApplyInfo(void* _player) {
         res = player->beforeApplyInfo();
         return res.c_str();
 
-    } catch (const K273::Exception &exc) {
-        K273::l_critical("PlayerBase__onApplyMove");
-        K273::l_critical("Assertion : %s", exc.getMessage().c_str());
-        K273::l_critical("Stacktrace :\n%s", exc.getStacktrace().c_str());
     } catch (...) {
-        K273::l_critical("Assertion : x");
-        K273::l_critical("Stacktrace : x");
+        logExceptionWrapper(__PRETTY_FUNCTION__);
     }
 
     return "";
@@ -269,13 +276,8 @@ void PlayerBase__onApplyMove(void* _player, void* _move) {
         GGPLib::PlayerBase* player = static_cast<GGPLib::PlayerBase*> (_player);
         GGPLib::JointMove* joint_move = static_cast<GGPLib::JointMove*> (_move);
         player->onApplyMove(joint_move);
-    } catch (const K273::Exception &exc) {
-        K273::l_critical("PlayerBase__onApplyMove");
-        K273::l_critical("Assertion : %s", exc.getMessage().c_str());
-        K273::l_critical("Stacktrace :\n%s", exc.getStacktrace().c_str());
     } catch (...) {
-        K273::l_critical("Assertion : x");
-        K273::l_critical("Stacktrace : x");
+        logExceptionWrapper(__PRETTY_FUNCTION__);
     }
 }
 
@@ -283,13 +285,8 @@ int PlayerBase__onNextMove(void* _player, double end_time) {
     try {
         GGPLib::PlayerBase* player = static_cast<GGPLib::PlayerBase*> (_player);
         return player->onNextMove(end_time);
-    } catch (const K273::Exception &exc) {
-        K273::l_critical("PlayerBase__onNextMove");
-        K273::l_critical("Assertion : %s", exc.getMessage().c_str());
-        K273::l_critical("Stacktrace : \n%s", exc.getStacktrace().c_str());
     } catch (...) {
-        K273::l_critical("Assertion : x");
-        K273::l_critical("Stacktrace : x");
+        logExceptionWrapper(__PRETTY_FUNCTION__);
     }
 
     return -1;
@@ -398,92 +395,63 @@ static GGPLib::StateMachine* createStateMachine(const K273::JsonValue root) {
 }
 
 void* createStateMachineFromJSON(const char* msg, int size) {
-    // XXX try
-    K273::JsonValue root = K273::JsonValue::parseJson(msg, size);
-    GGPLib::StateMachineInterface* sm = ::createStateMachine(root);
-    return (void *) sm;
+    try {
+        K273::JsonValue root = K273::JsonValue::parseJson(msg, size);
+        GGPLib::StateMachineInterface* sm = ::createStateMachine(root);
+        return (void *) sm;
+
+    } catch (...) {
+        logExceptionWrapper(__PRETTY_FUNCTION__);
+    }
+
+    return nullptr;
 }
 
 void* createGoallessStateMachineFromJSON(const char* msg, int size) {
-    // XXX try
-    K273::JsonValue root = K273::JsonValue::parseJson(msg, size);
-    int role_count = root["role_count"].asInt();
-    GGPLib::StateMachine* goal_sm = ::createStateMachine(root["goal_sm"]);
-    GGPLib::StateMachine* goalless_sm = ::createStateMachine(root["goalless_sm"]);
+    try {
+        K273::JsonValue root = K273::JsonValue::parseJson(msg, size);
+        int role_count = root["role_count"].asInt();
+        GGPLib::StateMachine* goal_sm = ::createStateMachine(root["goal_sm"]);
+        GGPLib::StateMachine* goalless_sm = ::createStateMachine(root["goalless_sm"]);
 
-    GGPLib::StateMachineInterface* sm = new GGPLib::GoalLessStateMachine(role_count,
-                                                                         goalless_sm,
-                                                                         goal_sm);
-    return (void *) sm;
+        GGPLib::StateMachineInterface* sm = new GGPLib::GoalLessStateMachine(role_count,
+                                                                             goalless_sm,
+                                                                             goal_sm);
+        return (void *) sm;
+
+    } catch (...) {
+        logExceptionWrapper(__PRETTY_FUNCTION__);
+    }
+
+    return nullptr;
 }
 
 
 void* createCombinedStateMachineFromJSON(const char* msg, int size) {
-    // XXX try
-    K273::JsonValue root = K273::JsonValue::parseJson(msg, size);
-    GGPLib::StateMachine* goal_sm = ::createStateMachine(root["goal_sm"]);
-    int number_control_states = root["num_controls"].asInt();
+    try {
+        K273::JsonValue root = K273::JsonValue::parseJson(msg, size);
+        GGPLib::StateMachine* goal_sm = ::createStateMachine(root["goal_sm"]);
+        int number_control_states = root["num_controls"].asInt();
 
-    GGPLib::CombinedStateMachine* combined = new GGPLib::CombinedStateMachine(number_control_states);
-    combined->setGoalStateMachine(goal_sm);
+        GGPLib::CombinedStateMachine* combined = new GGPLib::CombinedStateMachine(number_control_states);
+        combined->setGoalStateMachine(goal_sm);
 
-    for (auto control_sm : root["control_sms"]) {
-        GGPLib::StateMachine* sm = ::createStateMachine(control_sm);
-        int idx = control_sm["idx"].asInt();
-        int control_cid = control_sm["control_cid"].asInt();
-        combined->setControlStateMachine(idx, control_cid, sm);
+        for (auto control_sm : root["control_sms"]) {
+            GGPLib::StateMachine* sm = ::createStateMachine(control_sm);
+            int idx = control_sm["idx"].asInt();
+            int control_cid = control_sm["control_cid"].asInt();
+            combined->setControlStateMachine(idx, control_cid, sm);
+        }
+
+        // has to be called after setting the controls
+        combined->reset();
+
+        GGPLib::StateMachineInterface* sm = combined;
+        return (void *) sm;
+
+    } catch (...) {
+        logExceptionWrapper(__PRETTY_FUNCTION__);
     }
 
-    // has to be called after setting the controls
-    combined->reset();
-
-    GGPLib::StateMachineInterface* sm = combined;
-    return (void *) sm;
+    return nullptr;
 }
-
-/*
-
-void CombinedStateMachine__setGoalStateMachine(void* _combined, void* _sm) {
-    GGPLib::CombinedStateMachine* combined = static_cast<GGPLib::CombinedStateMachine*> (_combined);
-    GGPLib::StateMachine* sm = static_cast<GGPLib::StateMachine*> (_sm);
-}
-
-void CombinedStateMachine__setControlStateMachine(void* _combined, int control_index, int control_cid, void* _sm) {
-    GGPLib::CombinedStateMachine* combined = static_cast<GGPLib::CombinedStateMachine*> (_combined);
-    GGPLib::StateMachine* sm = static_cast<GGPLib::StateMachine*> (_sm);
-}
-
-
-
-   return nullptr;
-}
-
-
-
-    c_statemachine = interface.lib.createGoallessStateMachine(role_count,
-                                                              goalless_sm.c_statemachine,
-                                                              goal_sm.c_statemachine)
-
-    return interface.StateMachine(c_statemachine, goal_sm.get_initial_state(), goal_sm.get_roles())
-
-
-----
-
-    # the combined statemachine
-    c_statemachine = interface.lib.createCombinedStateMachine(len(control_bases.networks))
-
-
-    # goal only json
-    interface.lib.CombinedStateMachine__setGoalStateMachine(c_statemachine, goal_sm.c_statemachine)
-
-        interface.lib.CombinedStateMachine__setControlStateMachine(c_statemachine, idx,
-                                                                   p.fixed_base.cid,
-                                                                   control_sm.c_statemachine)
-    # this needs to be called after setting the controls
-    interface.lib.StateMachine__reset(c_statemachine)
-
-    combined_sm = interface.StateMachine(c_statemachine, control_sm.get_initial_state(), control_sm.get_roles())
-
-"""
-
-*/
