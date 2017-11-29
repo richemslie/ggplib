@@ -126,8 +126,8 @@ build / running instructions
 
     # tmp XXX, ticTacToe large is broken
     cd $GGPLIB_PATH
-    rm rulesheets/ticTacToeLarge.kif
-    rm rulesheets/ticTacToeLargeSuicide.kif
+    rm data/rulesheets/ticTacToeLarge.kif
+    rm data/rulesheets/ticTacToeLargeSuicide.kif
 
 9.  (Optional) Docs.
 
