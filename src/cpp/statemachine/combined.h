@@ -41,6 +41,10 @@ namespace GGPLib {
             ASSERT_MSG(false, "Should never be called");
         }
 
+        const BaseState* getInitialState() const {
+            return this->current->getInitialState();
+        }
+
         void updateBases(const BaseState* bs) {
             this->current = this->getControl(bs)->sm;
             this->current->updateBases(bs);

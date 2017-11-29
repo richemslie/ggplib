@@ -307,13 +307,17 @@ void StateMachine::setInitialState(const BaseState* bs) {
     this->initial_state->assign(bs);
 }
 
+const BaseState* StateMachine::getInitialState() const {
+    return this->initial_state;
+}
+
 BaseState* StateMachine::newBaseState() const {
     BaseState* bs = static_cast<BaseState*> (malloc(BaseState::mallocSize(this->num_bases)));
     bs->init(this->num_bases);
     return bs;
 }
 
-const GGPLib::BaseState* StateMachine::getCurrentState() const {
+const BaseState* StateMachine::getCurrentState() const {
     return this->current_state;
 }
 

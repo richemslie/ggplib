@@ -4,7 +4,6 @@
 #define BaseState void
 #define LegalState void
 #define JointMove void
-#define CombinedSM void
 #define PlayerBase void
 #define DepthChargeTest void
 
@@ -30,14 +29,6 @@ extern "C" {
     int BaseState__len(BaseState*);
     void BaseState__deleteBaseState(BaseState*);
 
-    // Create a state machine
-    StateMachine* createStateMachine(int role_count, int num_bases, int num_transitions, int num_components, int num_ouputs, int topological_size);
-    StateMachine* createGoallessStateMachine(int role_count, StateMachine*, StateMachine*);
-
-    CombinedSM* createCombinedStateMachine(int role_count);
-    void CombinedStateMachine__setGoalStateMachine(CombinedSM*, StateMachine* sm);
-    void CombinedStateMachine__setControlStateMachine(CombinedSM*, int control_index, int control_cid, StateMachine* sm);
-
     // StateMachine initialisation:
     void StateMachine__setInitialState(StateMachine*, BaseState* intial_state);
 
@@ -49,6 +40,7 @@ extern "C" {
 
 
     // StateMachine interface:
+    void StateMachine__getInitialState(StateMachine*, BaseState*);
     BaseState* StateMachine__newBaseState(StateMachine*);
 
     void StateMachine__updateBases(StateMachine*, BaseState* bs);
@@ -109,6 +101,8 @@ extern "C" {
     void Log_critical(const char*);
 
     StateMachine* createStateMachineFromJSON(const char* msg, int size);
+    StateMachine* createGoallessStateMachineFromJSON(const char* msg, int size);
+    StateMachine* createCombinedStateMachineFromJSON(const char* msg, int size);
 
     // CFFI END INCLUDE
 
@@ -122,6 +116,5 @@ extern "C" {
 #undef JointMove
 #undef boolean
 #undef ComponentType
-#undef CombinedStateMachine
 #undef PlayerBase
 #undef DepthChargeTest

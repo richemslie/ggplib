@@ -43,6 +43,10 @@ namespace GGPLib {
             this->goalless_sm->setInitialState(bs);
         }
 
+        const BaseState* getInitialState() const {
+            return this->goalless_sm->getInitialState();
+        }
+
         void updateBases(const BaseState* bs) {
             this->goalless_sm->updateBases(bs);
         }

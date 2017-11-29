@@ -24,6 +24,9 @@ namespace GGPLib {
 
         virtual void setInitialState(const BaseState* bs) = 0;
 
+        // get the initial state without changing the state of sm
+        virtual const BaseState* getInitialState() const = 0;
+
         virtual void updateBases(const BaseState* bs) = 0;
         virtual LegalState* getLegalState(int role_index) = 0;
 

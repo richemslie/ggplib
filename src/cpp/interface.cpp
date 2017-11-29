@@ -74,38 +74,6 @@ void BaseState__deleteBaseState(void* _bs) {
     ::free(bs);
 }
 
-// Create a state machine
-void* createStateMachine(int role_count, int num_bases, int num_transitions, int num_components, int num_ouputs, int topological_size) {
-    GGPLib::StateMachineInterface* sm = new GGPLib::StateMachine(role_count, num_bases, num_transitions, num_components, num_ouputs, topological_size);
-    return (void *) sm;
-}
-
-// Create a goalless state machine
-void* createGoallessStateMachine(int role_count, void* _sm1, void* _sm2) {
-    GGPLib::StateMachine* sm1 = static_cast<GGPLib::StateMachine*> (_sm1);
-    GGPLib::StateMachine* sm2 = static_cast<GGPLib::StateMachine*> (_sm2);
-
-    GGPLib::StateMachineInterface* sm = new GGPLib::GoalLessStateMachine(role_count, sm1, sm2);
-    return (void *) sm;
-}
-
-void* createCombinedStateMachine(int role_count) {
-    GGPLib::CombinedStateMachine* combined = new GGPLib::CombinedStateMachine(role_count);
-    return (void *) combined;
-}
-
-void CombinedStateMachine__setGoalStateMachine(void* _combined, void* _sm) {
-    GGPLib::CombinedStateMachine* combined = static_cast<GGPLib::CombinedStateMachine*> (_combined);
-    GGPLib::StateMachine* sm = static_cast<GGPLib::StateMachine*> (_sm);
-    combined->setGoalStateMachine(sm);
-}
-
-void CombinedStateMachine__setControlStateMachine(void* _combined, int control_index, int control_cid, void* _sm) {
-    GGPLib::CombinedStateMachine* combined = static_cast<GGPLib::CombinedStateMachine*> (_combined);
-    GGPLib::StateMachine* sm = static_cast<GGPLib::StateMachine*> (_sm);
-    combined->setControlStateMachine(control_index, control_cid, sm);
-}
-
 ///////////////////////////////////////////////////////////////////////////////
 
 void StateMachine__setInitialState(void* _sm, void* _bs) {
@@ -130,6 +98,14 @@ void StateMachine__delete(void* _sm) {
 void* StateMachine__newBaseState(void* _sm) {
     GGPLib::StateMachineInterface* sm = static_cast<GGPLib::StateMachineInterface*> (_sm);
     return (void *) sm->newBaseState();
+}
+
+void StateMachine__getInitialState(void* _sm, void* _bs) {
+    GGPLib::StateMachineInterface* sm = static_cast<GGPLib::StateMachineInterface*> (_sm);
+    GGPLib::BaseState* bs = static_cast<GGPLib::BaseState*> (_bs);
+
+    const GGPLib::BaseState* init_state = sm->getInitialState();
+    bs->assign(init_state);
 }
 
 void StateMachine__updateBases(void* _sm, void* _bs) {
@@ -364,68 +340,150 @@ void Log_critical(const char* msg) {
     K273::l_critical("%s", msg);
 }
 
-void* createStateMachineFromJSON(const char* msg, int size) {
-    K273::JsonValue root = K273::JsonValue::parseJson(msg, size);
+static GGPLib::StateMachine* createStateMachine(const K273::JsonValue root) {
+    const K273::JsonValue d = root["create"];
 
-    try {
-        const K273::JsonValue d = root["create"];
-
-        GGPLib::StateMachine* sm = new GGPLib::StateMachine(d["role_count"].asInt(),
-                                                            d["num_bases"].asInt(),
-                                                            d["num_transitions"].asInt(),
-                                                            d["num_components"].asInt(),
-                                                            d["num_outputs"].asInt(),
-                                                            d["topological_size"].asInt());
+    GGPLib::StateMachine* sm = new GGPLib::StateMachine(d["role_count"].asInt(),
+                                                        d["num_bases"].asInt(),
+                                                        d["num_transitions"].asInt(),
+                                                        d["num_components"].asInt(),
+                                                        d["num_outputs"].asInt(),
+                                                        d["topological_size"].asInt());
 
 
-        for (auto r : root["roles"]) {
-            sm->setRole(r["role_index"].asInt(),
-                        r["name"].asString().c_str(),
-                        r["input_start_index"].asInt(),
-                        r["legal_start_index"].asInt(),
-                        r["goal_start_index"].asInt(),
-                        r["num_inputs_legals"].asInt(),
-                        r["num_goals"].asInt());
-        }
-
-        for (auto c : root["components"]) {
-            sm->setComponent(c[0].asInt(), c[1].asInt(), c[2].asInt(), c[3].asInt(),
-                             c[4].asInt(), c[5].asInt(), c[6].asInt(), c[7].asInt());
-        }
-
-        for (auto o : root["outputs"]) {
-            sm->setOutput(o[0].asInt(), o[1].asInt());
-        }
-
-        for (auto m : root["metas"]) {
-            sm->setMetaInformation(m["component_id"].asInt(),
-                                   m["typename"].asString(),
-                                   m["gdl_str"].asString(),
-                                   m["move"].asString(),
-                                   m["goal_value"].asInt());
-        }
-
-        K273::l_info("control_flows %d, terminal_index %d",
-                     root["control_flows"].asInt(), root["terminal_index"].asInt());
-        sm->recordFinalise(root["control_flows"].asInt(), root["terminal_index"].asInt());
-
-        // initial_state
-        GGPLib::BaseState* bs = sm->newBaseState();
-        int index = 0;
-        for (auto v : root["initial_state"]) {
-            bs->set(index, v.asInt());
-            index++;
-        }
-
-        sm->setInitialState(bs);
-        sm->reset();
-        K273::l_info("Built sm via JSON");
-
-        return (void *) sm;
-
-    } catch (const K273::Assertion &exc) {
-        fprintf(stderr, "Assertion : %s\n", exc.getMessage().c_str());
-        fprintf(stderr, "Stacktrace :\n%s\n", exc.getStacktrace().c_str());
-        return nullptr;
+    for (auto r : root["roles"]) {
+        sm->setRole(r["role_index"].asInt(),
+                    r["name"].asString().c_str(),
+                    r["input_start_index"].asInt(),
+                    r["legal_start_index"].asInt(),
+                    r["goal_start_index"].asInt(),
+                    r["num_inputs_legals"].asInt(),
+                    r["num_goals"].asInt());
     }
+
+    for (auto c : root["components"]) {
+        sm->setComponent(c[0].asInt(), c[1].asInt(), c[2].asInt(), c[3].asInt(),
+                         c[4].asInt(), c[5].asInt(), c[6].asInt(), c[7].asInt());
+    }
+
+    for (auto o : root["outputs"]) {
+        sm->setOutput(o[0].asInt(), o[1].asInt());
+    }
+
+    for (auto m : root["metas"]) {
+        sm->setMetaInformation(m["component_id"].asInt(),
+                               m["typename"].asString(),
+                               m["gdl_str"].asString(),
+                               m["move"].asString(),
+                               m["goal_value"].asInt());
+    }
+
+    K273::l_info("control_flows %d, terminal_index %d",
+                 root["control_flows"].asInt(), root["terminal_index"].asInt());
+    sm->recordFinalise(root["control_flows"].asInt(), root["terminal_index"].asInt());
+
+    // initial_state
+    GGPLib::BaseState* bs = sm->newBaseState();
+    int index = 0;
+    for (auto v : root["initial_state"]) {
+        bs->set(index, v.asInt());
+        index++;
+    }
+
+    sm->setInitialState(bs);
+    sm->reset();
+    K273::l_info("Built sm via JSON");
+
+    return sm;
 }
+
+void* createStateMachineFromJSON(const char* msg, int size) {
+    // XXX try
+    K273::JsonValue root = K273::JsonValue::parseJson(msg, size);
+    GGPLib::StateMachineInterface* sm = ::createStateMachine(root);
+    return (void *) sm;
+}
+
+void* createGoallessStateMachineFromJSON(const char* msg, int size) {
+    // XXX try
+    K273::JsonValue root = K273::JsonValue::parseJson(msg, size);
+    int role_count = root["role_count"].asInt();
+    GGPLib::StateMachine* goal_sm = ::createStateMachine(root["goal_sm"]);
+    GGPLib::StateMachine* goalless_sm = ::createStateMachine(root["goalless_sm"]);
+
+    GGPLib::StateMachineInterface* sm = new GGPLib::GoalLessStateMachine(role_count,
+                                                                         goalless_sm,
+                                                                         goal_sm);
+    return (void *) sm;
+}
+
+
+void* createCombinedStateMachineFromJSON(const char* msg, int size) {
+    // XXX try
+    K273::JsonValue root = K273::JsonValue::parseJson(msg, size);
+    GGPLib::StateMachine* goal_sm = ::createStateMachine(root["goal_sm"]);
+    int number_control_states = root["num_controls"].asInt();
+
+    GGPLib::CombinedStateMachine* combined = new GGPLib::CombinedStateMachine(number_control_states);
+    combined->setGoalStateMachine(goal_sm);
+
+    for (auto control_sm : root["control_sms"]) {
+        GGPLib::StateMachine* sm = ::createStateMachine(control_sm);
+        int idx = control_sm["idx"].asInt();
+        int control_cid = control_sm["control_cid"].asInt();
+        combined->setControlStateMachine(idx, control_cid, sm);
+    }
+
+    // has to be called after setting the controls
+    combined->reset();
+
+    GGPLib::StateMachineInterface* sm = combined;
+    return (void *) sm;
+}
+
+/*
+
+void CombinedStateMachine__setGoalStateMachine(void* _combined, void* _sm) {
+    GGPLib::CombinedStateMachine* combined = static_cast<GGPLib::CombinedStateMachine*> (_combined);
+    GGPLib::StateMachine* sm = static_cast<GGPLib::StateMachine*> (_sm);
+}
+
+void CombinedStateMachine__setControlStateMachine(void* _combined, int control_index, int control_cid, void* _sm) {
+    GGPLib::CombinedStateMachine* combined = static_cast<GGPLib::CombinedStateMachine*> (_combined);
+    GGPLib::StateMachine* sm = static_cast<GGPLib::StateMachine*> (_sm);
+}
+
+
+
+   return nullptr;
+}
+
+
+
+    c_statemachine = interface.lib.createGoallessStateMachine(role_count,
+                                                              goalless_sm.c_statemachine,
+                                                              goal_sm.c_statemachine)
+
+    return interface.StateMachine(c_statemachine, goal_sm.get_initial_state(), goal_sm.get_roles())
+
+
+----
+
+    # the combined statemachine
+    c_statemachine = interface.lib.createCombinedStateMachine(len(control_bases.networks))
+
+
+    # goal only json
+    interface.lib.CombinedStateMachine__setGoalStateMachine(c_statemachine, goal_sm.c_statemachine)
+
+        interface.lib.CombinedStateMachine__setControlStateMachine(c_statemachine, idx,
+                                                                   p.fixed_base.cid,
+                                                                   control_sm.c_statemachine)
+    # this needs to be called after setting the controls
+    interface.lib.StateMachine__reset(c_statemachine)
+
+    combined_sm = interface.StateMachine(c_statemachine, control_sm.get_initial_state(), control_sm.get_roles())
+
+"""
+
+*/

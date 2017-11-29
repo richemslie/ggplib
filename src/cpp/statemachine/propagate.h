@@ -57,6 +57,7 @@ namespace GGPLib {
         const BaseState* getCurrentState() const;
 
         void setInitialState(const BaseState* bs);
+        const BaseState* getInitialState() const;
 
         void updateBases(const BaseState* bs);
         LegalState* getLegalState(int role_index);
