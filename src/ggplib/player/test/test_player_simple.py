@@ -2,6 +2,8 @@ from ggplib.player import get
 from ggplib.player.gamemaster import GameMaster
 from ggplib.db.helper import get_gdl_for_game
 
+import pytest
+
 
 def setup():
     from ggplib.util.init import setup_once
@@ -92,7 +94,7 @@ def test_tictactoe_take_win():
     assert gm.scores['oplayer'] == 0
     assert gm.depth == 1
 
-
+@pytest.mark.slow
 def test_breakthrough():
     ' mcs player vs ggtest1 '
     gm = GameMaster(get_gdl_for_game("breakthrough"))
@@ -107,7 +109,7 @@ def test_breakthrough():
     gm.add_player(get.get_player("pymcs"), "white")
     gm.add_player(get.get_player("simplemcts"), "black")
 
-    gm.start(meta_time=30, move_time=1.0)
+    gm.start(meta_time=30, move_time=2.0)
     gm.play_to_end()
 
     # hopefully simplemcts wins!  Not a great test.
