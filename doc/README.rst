@@ -136,8 +136,9 @@ build / running instructions
     cd $GGPLIB_PATH
     . bin/setup.sh
 
+    pip install sphinx
     cd doc
-    make
+    make html
 
 
 
