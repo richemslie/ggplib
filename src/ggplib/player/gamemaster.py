@@ -1,5 +1,6 @@
 import random
 from ggplib.util import log
+from ggplib import interface
 from ggplib.db import lookup
 from ggplib.player.match import Match
 from ggplib.symbols import SymbolFactory
@@ -118,10 +119,8 @@ class GameMaster(object):
         self.depth += 1
         return tuple(new_last_move)
 
-
     def finished(self):
         return self.sm.is_terminal()
-
 
     def play_to_end(self, last_move=None):
         while not self.finished():
@@ -141,3 +140,18 @@ class GameMaster(object):
 
             # and stop them
             match.do_stop()
+
+        self.cleanup()
+
+    def cleanup(self):
+        if self.next_basestate:
+            interface.dealloc_basestate(self.next_basestate)
+            self.next_basestate = None
+
+        if self.joint_move:
+            interface.dealloc_jointmove(self.joint_move)
+            self.joint_move = None
+
+        if self.sm:
+            interface.dealloc_statemachine(self.sm)
+            self.sm = None

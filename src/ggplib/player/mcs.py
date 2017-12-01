@@ -7,6 +7,7 @@ import json
 
 from ggplib.util import log
 from ggplib.player.base import MatchPlayer
+from ggplib import interface
 
 
 class MoveStat(object):
@@ -33,6 +34,10 @@ class MCSPlayer(MatchPlayer):
     max_run_time = -1
     max_iterations = -1
     ucb_constant = 1.414
+    sm = None
+    joint_move = None
+    depth_charge_state = None
+    depth_charge_joint_move = None
 
     def on_meta_gaming(self, finish_time):
         log.info("%s meta Gaming: match: %s" % (self.name, self.match.match_id))
@@ -46,6 +51,23 @@ class MCSPlayer(MatchPlayer):
 
         # store the node so we can return info on move
         self.root = None
+
+    def cleanup(self):
+        if self.depth_charge_joint_move:
+            interface.dealloc_jointmove(self.depth_charge_joint_move)
+            self.depth_charge_joint_move = None
+
+        if self.depth_charge_state:
+            interface.dealloc_basestate(self.depth_charge_state)
+            self.depth_charge_state = None
+
+        if self.joint_move:
+            interface.dealloc_jointmove(self.joint_move)
+            self.joint_move = None
+
+        if self.sm:
+            interface.dealloc_statemachine(self.sm)
+            self.sm = None
 
     def do_depth_charge(self):
         # performs the simplest depth charge, returning our score

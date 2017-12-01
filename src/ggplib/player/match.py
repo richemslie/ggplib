@@ -269,6 +269,7 @@ class Match:
     def cleanup(self):
         try:
             self.player.cleanup()
+            log.verbose("done cleanup player: %s" % self.player)
         except Exception as exc:
             log.error("FAILED TO CLEANUP PLAYER: %s" % exc)
             type, value, tb = sys.exc_info()
@@ -292,7 +293,7 @@ class Match:
             interface.dealloc_statemachine(self.sm)
             self.sm = None
 
-        log.warning("done cleaning up c++ stuff")
+        log.warning("match - done cleaning up")
 
     def __repr__(self):
         return "(id:%s role:%s meta:%s move:%s)" % (self.match_id,
