@@ -6,17 +6,9 @@ from ggplib.statemachine import builder
 
 games = ["ticTacToe", "connectFour", "breakthrough", "hex", "speedChess", "reversi"]
 
-_setup_once = False
-
-
 def setup():
-    global _setup_once
-    if not _setup_once:
-        from ggplib import interface
-        interface.initialise_k273(1)
-
-        import ggplib.util.log
-        ggplib.util.log.initialise()
+    from ggplib.util.init import setup_once
+    setup_once()
 
 
 def get_propnets():

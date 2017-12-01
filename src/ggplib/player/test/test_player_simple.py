@@ -2,19 +2,10 @@ from ggplib.player import get
 from ggplib.player.gamemaster import GameMaster
 from ggplib.db.helper import get_gdl_for_game
 
-_setup_once = False
-
 
 def setup():
-    global _setup_once
-    if not _setup_once:
-        _setup_once = True
-
-        from ggplib import interface
-        interface.initialise_k273(1)
-
-        import ggplib.util.log
-        ggplib.util.log.initialise()
+    from ggplib.util.init import setup_once
+    setup_once()
 
 
 def test_tictactoe_play():
@@ -106,9 +97,15 @@ def test_breakthrough():
     ' mcs player vs ggtest1 '
     gm = GameMaster(get_gdl_for_game("breakthrough"))
 
-    # add two c++ players
+    # add two players
+    white = get.get_player("pymcs")
+    white.max_run_time = 0.25
+
+    black = get.get_player("simplemcts")
+    black.skip_single_moves = True
+
     gm.add_player(get.get_player("pymcs"), "white")
-    gm.add_player(get.get_player("ggtest1"), "black")
+    gm.add_player(get.get_player("simplemcts"), "black")
 
     gm.start(meta_time=30, move_time=1.0)
     gm.play_to_end()

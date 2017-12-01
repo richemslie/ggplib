@@ -91,7 +91,7 @@ from ggplib.db.store import get_root
 
 
 
-def main():
+def main(filenames, pre_load_database):
     root_store = get_root()
     rulesheets_store = root_store.get_directory("rulesheets")
 
@@ -99,7 +99,7 @@ def main():
     games = re.findall(pattern, text)
 
     mapping = {}
-    for fn in sys.argv[1:]:
+    for fn in filenames:
         a = fn
         # strip this off, comes from 'find ... | xargs ...'
         assert a.startswith("./")
@@ -130,13 +130,32 @@ def main():
     print set(games) == set(mapping)
 
     # just copy to our destination_path the kif files
+    known_to_fail = ['amazonsTorus_10x10', 'atariGoVariant_7x7',
+                     'gt_two_thirds_4p', 'gt_two_thirds_6p',
+                     'linesOfAction', 'ticTacToeLargeSuicide', 'ticTacToeLarge']
+
     for game in games:
         fn = mapping[game][1]
-        cmd = "cp %s %s/%s.kif" % (fn, rulesheets_store.path, game)
+
+        if game in known_to_fail:
+            continue
+
+        cmd = "cp -f %s %s/%s.kif" % (fn, rulesheets_store.path, game)
         print cmd
         os.system(cmd)
+
+    if pre_load_database:
+        from ggplib.db.helper import lookup_all_games
+        lookup_all_games()
 
 ###############################################################################
 
 if __name__ == "__main__":
-    main()
+    if sys.argv[1] == "-p":
+        pre_load_database = True
+        filenames = sys.argv[2:]
+    else:
+        pre_load_database = False
+        filenames = sys.argv[1:]
+
+    main(filenames, pre_load_database)

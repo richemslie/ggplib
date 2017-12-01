@@ -2,12 +2,12 @@ import pdb
 import sys
 import traceback
 
-import py
+import pytest
 
 from ggplib.util import log
 
 from ggplib.db import lookup, signature
-from ggplib.db.helper import get_gdl_for_game
+from ggplib.db.helper import get_gdl_for_game, lookup_all_games
 
 from ggplib import interface
 from ggplib.statemachine.depthcharges import depth_charges
@@ -15,18 +15,9 @@ from ggplib.statemachine.depthcharges import depth_charges
 
 ######################################################################
 
-_setup_once = False
 def setup():
-    global _setup_once
-    if not _setup_once:
-        from ggplib import interface
-        interface.initialise_k273(1)
-
-        import ggplib.util.log
-        ggplib.util.log.initialise()
-
-        lookup.get_database()
-
+    from ggplib.util.init import setup_once
+    setup_once()
 
 def test_compare_same():
     game_a = get_gdl_for_game("ticTacToe")
@@ -111,24 +102,7 @@ def test_not_in_database():
     log.info("c++ rollouts per second %.2f" % rollouts_per_second)
 
 
+# this could be potentially super slow first time around
+@pytest.mark.slow
 def test_lookup_for_all_games():
-    py.test.skip("this is super slow first time around")
-
-    failed = []
-    known_to_fail = ['amazonsTorus_10x10', 'atariGoVariant_7x7', 'gt_two_thirds_4p', 'gt_two_thirds_6p', 'linesOfAction']
-    for game in lookup.get_all_game_names():
-        if game not in known_to_fail:
-            try:
-                game_info = lookup.by_name(game, build_sm=False)
-                assert game_info.game == game
-                sm = game_info.get_sm()
-
-                log.verbose("DONE GETTING Statemachine FOR GAME %s %s" % (game, sm))
-            except lookup.LookupFailed as exc:
-                log.warning("Failed to lookup %s: %s" % (game, exc))
-                failed.append(game)
-
-    if failed:
-        log.error("Failed games %s" % (failed,))
-        assert False, failed
-
+    lookup_all_games()

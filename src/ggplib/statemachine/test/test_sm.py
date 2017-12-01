@@ -7,15 +7,9 @@ from ggplib.statemachine.depthcharges import depth_charges
 
 from ggplib.db import helper
 
-_setup_once = False
-
 def setup():
-    global _setup_once
-    if not _setup_once:
-        interface.initialise_k273(1)
-
-        import ggplib.util.log
-        ggplib.util.log.initialise()
+    from ggplib.util.init import setup_once
+    setup_once()
 
 
 def test_get_by_propnet_name():

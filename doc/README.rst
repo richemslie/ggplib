@@ -113,21 +113,22 @@ build / running instructions
     cd src/ggplib
     py.test -s
 
-8.  (Optional) XXX WIP.  To use database lookup.
+8.  (Optional) To use database lookup.  Make a big pot of coffee - it will take a while.
 
 .. code-block:: shell
 
     cd $GGPLIB_PATH
     . bin/setup.sh
 
+    # cleanup any old files
+    git clean -f -d -x data
+
     git clone https://github.com/ggp-org/ggp-repository.git
     cd ggp-repository/war/root/games/
-    find . -name *.kif | xargs python $GGPLIB_PATH/src/ggplib/scripts/create_rulesheets.py
+    find . -name *.kif | xargs python $GGPLIB_PATH/src/ggplib/scripts/create_rulesheets.py -p
 
-    # tmp XXX, ticTacToe large is broken
     cd $GGPLIB_PATH
-    rm data/rulesheets/ticTacToeLarge.kif
-    rm data/rulesheets/ticTacToeLargeSuicide.kif
+    rm -rf ggp-repository
 
 9.  (Optional) Docs.
 
