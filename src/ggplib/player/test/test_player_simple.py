@@ -106,8 +106,8 @@ def test_breakthrough():
     black = get.get_player("simplemcts")
     black.skip_single_moves = True
 
-    gm.add_player(get.get_player("pymcs"), "white")
-    gm.add_player(get.get_player("simplemcts"), "black")
+    gm.add_player(white, "white")
+    gm.add_player(black, "black")
 
     gm.start(meta_time=30, move_time=2.0)
     gm.play_to_end()
