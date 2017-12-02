@@ -243,7 +243,7 @@ void StateMachine::recordFinalise(int control_flows, int terminal_index) {
 
     // assign to transitions state
     Component* transition = this->components + this->transitions_index;
-    for (int ii=0; ii<this->num_bases; ii++, transition++) {
+    for (int ii=0; ii<this->num_transitions; ii++, transition++) {
         this->transition_state->set(ii, transition->count == 0);
     }
 
