@@ -32,7 +32,8 @@ def replace_symbols(s, from_, to_):
 ###################################################################################################
 
 class Match:
-    def __init__(self, match_id, role, meta_time, move_time, player, gdl, cushion_time=-1):
+    def __init__(self, match_id, role, meta_time, move_time, player, gdl,
+                 verbose=True, cushion_time=-1):
         assert gdl is not None
 
         self.match_id = match_id
@@ -40,6 +41,8 @@ class Match:
         self.gdl = gdl
         self.meta_time = meta_time
         self.move_time = move_time
+
+        self.verbose = verbose
         self.cushion_time = cushion_time
 
         self.move_info = []
@@ -71,16 +74,18 @@ class Match:
         if self.cushion_time > 0:
             end_time -= self.cushion_time
 
-        log.debug("Match.do_start(), time = %.1f" % (end_time - enter_time))
+        if self.verbose:
+            log.debug("Match.do_start(), time = %.1f" % (end_time - enter_time))
 
         (self.gdl_symbol_mapping,
          self.game_info) = lookup.by_gdl(self.gdl)
 
         self.sm = self.game_info.get_sm()
         self.sm.reset()
-        log.debug("Got state machine %s for game '%s' and match_id: %s" % (self.sm,
-                                                                           self.game_info.game,
-                                                                           self.match_id))
+        if self.verbose:
+            log.debug("Got state machine %s for game '%s' and match_id: %s" % (self.sm,
+                                                                               self.game_info.game,
+                                                                               self.match_id))
 
         if initial_basestate:
             # dupe the state - it could be deleted under our feet
@@ -88,7 +93,8 @@ class Match:
             bs.assign(initial_basestate)
             initial_basestate = bs
 
-            log.debug("The start state is %s" % self.sm.basestate_to_str(initial_basestate))
+            if self.verbose:
+                log.debug("The start state is %s" % self.sm.basestate_to_str(initial_basestate))
 
             # update the statemachine
             self.sm.update_bases(initial_basestate)
@@ -115,9 +121,10 @@ class Match:
             raise BadGame("Our role not found. %s in %s", (our_role, self.sm.get_roles()))
 
         self.our_role_index = self.sm.get_roles().index(our_role)
-        log.info('roles : %s, our_role : %s, role_index : %s' % (self.sm.get_roles(),
-                                                                 our_role,
-                                                                 self.our_role_index))
+        if self.verbose:
+            log.info('roles : %s, our_role : %s, role_index : %s' % (self.sm.get_roles(),
+                                                                     our_role,
+                                                                     self.our_role_index))
         assert self.our_role_index != -1
 
         # FINALLY : call the meta gaming stage on the player
@@ -126,7 +133,8 @@ class Match:
         self.player.on_meta_gaming(end_time)
 
     def apply_move(self, moves):
-        log.debug("apply moves: %s" % (moves,))
+        if self.verbose:
+            log.debug("apply moves: %s" % (moves,))
 
         # we give the player an one time opportunity to return debug/extra information
         # about the move it just played
@@ -144,7 +152,9 @@ class Match:
             if self.gdl_symbol_mapping:
                 for k, v in self.gdl_symbol_mapping.items():
                     move = replace_symbols(move, k, v)
-                log.debug("remapped move from '%s' -> '%s'" % (gamemaster_move, move))
+
+                if self.verbose:
+                    log.debug("remapped move from '%s' -> '%s'" % (gamemaster_move, move))
 
             preserve_move.append(move)
 
@@ -198,13 +208,15 @@ class Match:
 
     def do_play(self, move):
         enter_time = time.time()
-        log.debug("do_play: %s" % (move,))
+        if self.verbose:
+            log.debug("do_play: %s" % (move,))
 
         if move is not None:
             self.apply_move(move)
 
         current_state = self.get_current_state()
-        log.info("Current state : '%s'" % self.sm.basestate_to_str(current_state))
+        if self.verbose:
+            log.info("Current state : '%s'" % self.sm.basestate_to_str(current_state))
         self.sm.update_bases(current_state)
         if self.sm.is_terminal():
             return "done"
@@ -233,7 +245,9 @@ class Match:
             log.critical(msg)
             raise CriticalError(msg)
 
-        log.info("do_play sending move: %s" % move)
+        log.info("(%s) do_play '%s' sending move: %s" % (self.player.name,
+                                                         self.role,
+                                                         move))
         return move
 
     def do_stop(self):

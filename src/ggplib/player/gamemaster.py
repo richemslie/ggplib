@@ -7,7 +7,9 @@ from ggplib.symbols import SymbolFactory
 
 
 class GameMaster(object):
-    def __init__(self, gdl_str):
+    def __init__(self, gdl_str, verbose=False):
+        self.verbose = verbose
+
         # used to convert to base state
         self.symbol_factory = SymbolFactory()
 
@@ -25,7 +27,7 @@ class GameMaster(object):
         self.bases = [get_base_tuple(i) for i in range(self.next_basestate.len())]
 
         self.players = []
-
+        self.players_map = {}
         self.depth = 0
 
         # updated after game is finished
@@ -38,6 +40,7 @@ class GameMaster(object):
 
     def add_player(self, player, role):
         self.players.append((player, role))
+        self.players_map[role] = player
 
     def convert_to_base_state(self, state_str):
         state_set = set()
@@ -54,6 +57,10 @@ class GameMaster(object):
 
         return bs
 
+    def reset(self):
+        self.scores = {}
+        self.matches = []
+
     def start(self, meta_time=10, move_time=5, initial_basestate=None):
         assert self.players
 
@@ -69,11 +76,12 @@ class GameMaster(object):
 
         player_matches = []
         for player, role in self.players:
-            match = Match(self.match_id, role, meta_time, move_time, player, self.gdl_str)
+            match = Match(self.match_id, role, meta_time, move_time, player, self.gdl_str, verbose=False)
             player_matches.append(match)
 
             # call do start...
-            log.verbose("Starting for %s / %s" % (match.role, match.player))
+            if self.verbose:
+                log.verbose("Starting for %s / %s" % (match.role, match.player))
             match.do_start(initial_basestate=initial_basestate)
 
         # reorder matches to roles (and check that we have them)
@@ -94,7 +102,9 @@ class GameMaster(object):
         for role_index, (match, role) in enumerate(zip(self.matches,
                                                        self.sm.get_roles())):
 
-            log.verbose("do_play(%s) for %s / %s" % (last_move, role, match.player))
+            if self.verbose:
+                log.verbose("===============================================================")
+                log.verbose("do_play(%s) for %s / %s" % (last_move, role, match.player))
             move = match.do_play(last_move)
             new_last_move.append(move)
 
@@ -111,7 +121,8 @@ class GameMaster(object):
                     break
 
         assert len(actions) == len(self.matches)
-        log.verbose("playing %s" % (actions,))
+        if self.verbose:
+            log.verbose("playing %s" % (actions,))
 
         self.sm.next_state(self.joint_move, self.next_basestate)
         self.sm.update_bases(self.next_basestate)
@@ -126,8 +137,9 @@ class GameMaster(object):
         while not self.finished():
             last_move = self.play_single_move(last_move)
 
-        log.verbose("Played to depth %d" % self.depth)
-        log.verbose("Last move %s" % (last_move,))
+        if self.verbose:
+            log.verbose("Played to depth %d" % self.depth)
+            log.verbose("Last move %s" % (last_move,))
 
         for ri, role in enumerate(self.sm.get_roles()):
             score = self.sm.get_goal_value(ri)
@@ -140,8 +152,6 @@ class GameMaster(object):
 
             # and stop them
             match.do_stop()
-
-        self.cleanup()
 
     def cleanup(self):
         if self.next_basestate:
