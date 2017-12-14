@@ -53,6 +53,7 @@ def get_lib():
 
 ffi, lib = get_lib()
 
+
 ###############################################################################
 # wrappers of c++ classes
 ###############################################################################
@@ -82,6 +83,14 @@ class BaseState:
     def __eq__(self, other):
         return self.equals(other)
 
+    def to_list(self):
+        ' helper '
+        return [self.get(i) for i in range(self.len())]
+
+    def from_list(self, state):
+        ' helper '
+        [self.set(i, v) for i, v in enumerate(state)]
+
 
 def dealloc_basestate(s):
     lib.BaseState__deleteBaseState(s.c_base_state)
@@ -100,6 +109,11 @@ class LegalState:
     def get_legal(self, index):
         return lib.LegalState__getLegal(self.c_legal_state, index)
 
+    def to_list(self):
+        ' helper '
+        return [self.get_legal(i) for i in range(self.get_count())]
+
+
 ###############################################################################
 
 class JointMove:
@@ -112,10 +126,12 @@ class JointMove:
     def set(self, role_index, value):
         lib.JointMove__set(self.c_joint_move, role_index, value)
 
+
 def dealloc_jointmove(joint_move):
     # XXX actually delete it in c++
     log.critical("IMPLEMENT ME: dealloc_jointmove")
     joint_move.c_joint_move = None
+
 
 ###############################################################################
 
@@ -183,6 +199,8 @@ class StateMachine:
         ' helper '
         return " ".join([self.get_gdl(i) for i in range(bs.len()) if bs.get(i)])
 
+
+###############################################################################
 
 def create_statemachine(buf, roles):
     c_statemachine = lib.createStateMachineFromJSON(buf, len(buf))
@@ -268,6 +286,7 @@ class Logging:
     def critical(self, msg):
         lib.Log_critical(msg)
 
+
 ###############################################################################
 
 def depth_charge(sm, seconds):
@@ -280,6 +299,7 @@ def depth_charge(sm, seconds):
     lib.DepthChargeTest__delete(c_obj)
 
     return msecs, rollouts, num_state_changes
+
 
 ###############################################################################
 
