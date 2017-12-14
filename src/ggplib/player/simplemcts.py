@@ -9,10 +9,10 @@ from ggplib.player.proxy import ProxyPlayer
 class SimpleMctsPlayer(ProxyPlayer):
 
     skip_single_moves = False
-    max_tree_search_time = -1
-    max_memory = 1024 * 1024 * 1024 * 6
-    max_tree_playout_iterations = 1000000
-    max_number_of_nodes = 1000000
+    max_tree_search_time = 5
+    max_memory = 1024 * 1024 * 1024 * 12
+    max_tree_playout_iterations = 10000000
+    max_number_of_nodes = 10000000
     ucb_constant = 1.15
     select_random_move_count = 16
     dump_depth = 2

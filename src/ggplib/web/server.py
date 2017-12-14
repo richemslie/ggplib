@@ -13,10 +13,10 @@ from twisted.internet import task
 from twisted.web import server
 from twisted.web.resource import Resource
 
-from ggplib.symbols import SymbolFactory, ListTerm
-from ggplib.player import match
-
+from ggplib.util.symbols import SymbolFactory, ListTerm
 from ggplib.util import log
+
+from ggplib.player import match
 
 
 ###################################################################################################
@@ -261,37 +261,3 @@ class GGPServer(Resource):
             self.current_match = None
 
         self.timeout_deferred = None
-
-###############################################################################
-
-def main():
-    from ggplib.player.get import get_player
-
-    port = int(sys.argv[1])
-    player_type = sys.argv[2]
-
-    # if third argument, set to player name
-    try:
-        player_name = sys.argv[3]
-    except IndexError:
-        player_name = player_type
-
-    from ggplib import interface
-    interface.initialise_k273(1, log_name_base=player_name)
-    log.initialise()
-
-    log.info("Running player '%s' on port %d" % (player_type, port))
-    player = get_player(player_type, player_name)
-
-    ggp = GGPServer()
-    ggp.set_player(player)
-    site = server.Site(ggp)
-
-    reactor.listenTCP(port, site)
-    reactor.run()
-
-
-###############################################################################
-
-if __name__ == "__main__":
-    main()

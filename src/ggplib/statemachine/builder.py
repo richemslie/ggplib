@@ -4,6 +4,7 @@ import json
 
 from ggplib.util import log
 from ggplib import interface
+
 from ggplib.propnet.constants import (OR, AND, NOT, PROPOSITION,
                                       TRANSITION, MAX_FAN_OUT_SIZE)
 from ggplib.propnet import getpropnet
@@ -96,7 +97,6 @@ class BuilderDescription(BuilderBase):
         self.metas = []
         self.components = []
         self.outputs = []
-        self.lib = interface.lib
 
     def create_state_machine(self, role_count, num_bases, num_transitions,
                              num_components, num_outputs, topological_size):

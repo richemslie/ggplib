@@ -3,7 +3,7 @@ import time
 import traceback
 
 from ggplib.util import log
-from ggplib.symbols import tokenize
+from ggplib.util.symbols import tokenize
 
 from ggplib.db import lookup
 from ggplib import interface

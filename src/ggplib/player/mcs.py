@@ -31,7 +31,7 @@ class MoveStat(object):
 
 
 class MCSPlayer(MatchPlayer):
-    max_run_time = -1
+    max_run_time = 1
     max_iterations = -1
     ucb_constant = 1.414
     sm = None

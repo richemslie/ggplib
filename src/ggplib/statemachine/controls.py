@@ -1,8 +1,7 @@
 import time
 from pprint import pprint
 
-from ggplib.util import log
-from ggplib import symbols
+from ggplib.util import log, symbols
 
 from ggplib.propnet.constants import PROPOSITION, MAX_FAN_OUT_SIZE
 from ggplib.propnet.factory import ConstantPropagator

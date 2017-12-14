@@ -1,9 +1,10 @@
 import random
 from ggplib.util import log
 from ggplib import interface
+
 from ggplib.db import lookup
 from ggplib.player.match import Match
-from ggplib.symbols import SymbolFactory
+from ggplib.util.symbols import SymbolFactory
 
 
 class GameMaster(object):

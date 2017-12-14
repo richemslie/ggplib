@@ -9,8 +9,7 @@ TODO
 from __future__ import print_function
 
 from ggplib.propnet.constants import AND, OR, NOT, PROPOSITION, TRANSITION, CONSTANT, UNKNOWN, MAX_FAN_OUT_SIZE
-from ggplib import symbols
-from ggplib.util import log
+from ggplib.util import log, symbols
 
 DEBUG = False
 

@@ -9,7 +9,7 @@ since it see things in a certain order and numbers are not remapped.
 import pprint
 from collections import OrderedDict
 
-from ggplib.symbols import SymbolFactory, Term, ListTerm
+from ggplib.util.symbols import SymbolFactory, Term, ListTerm
 
 root_constants = "role init base input true next legal terminal does goal".split()
 
