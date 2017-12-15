@@ -245,35 +245,38 @@ class Match:
             log.critical(msg)
             raise CriticalError(msg)
 
-        log.info("(%s) do_play '%s' sending move: %s" % (self.player.name,
-                                                         self.role,
-                                                         move))
+        if self.verbose:
+            log.info("(%s) do_play '%s' sending move: %s" % (self.player.name,
+                                                             self.role,
+                                                             move))
         return move
 
     def do_stop(self):
-        log.info("Match done %s" % self.match_id)
         assert self.sm.is_terminal(), "should never be called unless game is finished"
+        if self.verbose:
+            log.info("Match done %s" % self.match_id)
 
-        log.info("Final scores:")
-        for idx, role in enumerate(self.sm.get_roles()):
-            ourself_str = "(me) " if idx == self.our_role_index else ""
-            log.info("  %s %s: %s " % (role,
-                                       ourself_str,
-                                       self.sm.get_goal_value(idx)))
+            log.info("Final scores:")
+            for idx, role in enumerate(self.sm.get_roles()):
+                ourself_str = "(me) " if idx == self.our_role_index else ""
+                log.info("  %s %s: %s " % (role,
+                                           ourself_str,
+                                           self.sm.get_goal_value(idx)))
 
-        log.info("Moves:")
-        buf = [""]
-        for move in self.moves:
-            if isinstance(move, str):
-                move_str = move
-            else:
-                move_str = " ".join(str(t) for t in move)
+            log.info("Moves:")
+            buf = [""]
+            for move in self.moves:
+                if isinstance(move, str):
+                    move_str = move
+                else:
+                    move_str = " ".join(str(t) for t in move)
 
-            buf.append("\t(" + move_str + ")")
+                buf.append("\t(" + move_str + ")")
 
-        log.info("\n".join(buf))
+            log.info("\n".join(buf))
+            log.info("DONE!")
+
         self.cleanup()
-        log.info("DONE!")
 
     def do_abort(self):
         log.warning("abort match %s" % self.match_id)
@@ -283,14 +286,16 @@ class Match:
     def cleanup(self):
         try:
             self.player.cleanup()
-            log.verbose("done cleanup player: %s" % self.player)
+            if self.verbose:
+                log.verbose("done cleanup player: %s" % self.player)
         except Exception as exc:
             log.error("FAILED TO CLEANUP PLAYER: %s" % exc)
             type, value, tb = sys.exc_info()
             log.error(traceback.format_exc())
 
         # cleanup c++ stuff
-        log.warning("cleaning up c++ stuff")
+        if self.verbose:
+            log.warning("cleaning up c++ stuff")
 
         # all the basestates
         for bs in self.states:
@@ -307,7 +312,7 @@ class Match:
             interface.dealloc_statemachine(self.sm)
             self.sm = None
 
-        log.warning("match - done cleaning up")
+        log.info("match - done cleaning up")
 
     def __repr__(self):
         return "(id:%s role:%s meta:%s move:%s)" % (self.match_id,

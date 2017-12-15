@@ -43,6 +43,9 @@ class GameMaster(object):
         self.players.append((player, role))
         self.players_map[role] = player
 
+    def get_player(self, role_index):
+        return self.players[role_index][0]
+
     def convert_to_base_state(self, state_str):
         state_set = set()
         for state in self.symbol_factory.to_symbols(state_str):
