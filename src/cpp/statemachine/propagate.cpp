@@ -41,7 +41,7 @@ StateMachine::StateMachine(int role_count, int num_bases, int num_transitions,
 }
 
 StateMachine::~StateMachine() {
-    K273::l_debug("Entering StateMachine::~StateMachine()");
+    //K273::l_debug("Entering StateMachine::~StateMachine()");
     free(this->transition_state);
     free(this->initial_state);
     free(this->current_state);
@@ -121,7 +121,7 @@ StateMachineInterface* StateMachine::dupe() const {
     }
 
     d->initialised = true;
-    K273::l_debug("Duped StateMachine with %d components", d->num_components);
+    //K273::l_debug("Duped StateMachine with %d components", d->num_components);
     return d;
 }
 
