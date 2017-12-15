@@ -27,7 +27,7 @@ extern "C" {
     boolean BaseState__equals(BaseState*, BaseState* other);
     void BaseState__assign(BaseState*, BaseState* from);
     int BaseState__len(BaseState*);
-    void BaseState__deleteBaseState(BaseState*);
+    void BaseState__delete(BaseState*);
 
     // StateMachine initialisation:
     void StateMachine__setInitialState(StateMachine*, BaseState* intial_state);
@@ -63,6 +63,7 @@ extern "C" {
 
     int JointMove__get(JointMove*, int role_index);
     void JointMove__set(JointMove*, int role_index, int value);
+    void JointMove__delete(JointMove*);
 
 
     PlayerBase* Player__createRandomPlayer(StateMachine*, int our_role_index);

@@ -86,7 +86,7 @@ int BaseState__len(void* _bs) {
     return bs->size;
 }
 
-void BaseState__deleteBaseState(void* _bs) {
+void BaseState__delete(void* _bs) {
     GGPLib::BaseState* bs = static_cast<GGPLib::BaseState*> (_bs);
     ::free(bs);
 }
@@ -199,6 +199,13 @@ int JointMove__get(void* _move, int role_index) {
 void JointMove__set(void* _move, int role_index, int value) {
     GGPLib::JointMove* joint_move = static_cast<GGPLib::JointMove*> (_move);
     joint_move->set(role_index, value);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+void JointMove__delete(void* _move) {
+    GGPLib::JointMove* joint_move = static_cast<GGPLib::JointMove*> (_move);
+    ::free(joint_move);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

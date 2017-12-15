@@ -93,7 +93,7 @@ class BaseState:
 
 
 def dealloc_basestate(s):
-    lib.BaseState__deleteBaseState(s.c_base_state)
+    lib.BaseState__delete(s.c_base_state)
     s.c_base_state = None
 
 
@@ -128,8 +128,7 @@ class JointMove:
 
 
 def dealloc_jointmove(joint_move):
-    # XXX actually delete it in c++
-    log.critical("IMPLEMENT ME: dealloc_jointmove")
+    lib.JointMove__delete(joint_move.c_joint_move)
     joint_move.c_joint_move = None
 
 
@@ -148,9 +147,7 @@ class StateMachine:
 
     def dupe(self):
         new_c_statemachine = lib.StateMachine__dupe(self.c_statemachine)
-        sm = StateMachine(new_c_statemachine, self._roles)
-        log.warning("Duped from %s to %s" % (self, sm))
-        return sm
+        return StateMachine(new_c_statemachine, self._roles)
 
     def get_initial_state(self):
         bs = self.new_base_state()
