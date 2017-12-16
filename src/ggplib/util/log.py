@@ -40,42 +40,42 @@ def init_basic_python_logging(logname):
 
 def verbose(msg):
     if cpp_log:
-        cpp_log.verbose(msg)
+        cpp_log.verbose(str(msg))
     else:
         print msg
 
 
 def debug(msg):
     if cpp_log:
-        cpp_log.debug(msg)
+        cpp_log.debug(str(msg))
     else:
         print msg
 
 
 def info(msg):
     if cpp_log:
-        cpp_log.info(msg)
+        cpp_log.info(str(msg))
     else:
         print msg
 
 
 def warning(msg):
     if cpp_log:
-        cpp_log.warning(msg)
+        cpp_log.warning(str(msg))
     else:
         print msg
 
 
 def error(msg):
     if cpp_log:
-        cpp_log.error(msg)
+        cpp_log.error(str(msg))
     else:
         print msg
 
 
 def critical(msg):
     if cpp_log:
-        cpp_log.critical(msg)
+        cpp_log.critical(str(msg))
     else:
         print msg
 
