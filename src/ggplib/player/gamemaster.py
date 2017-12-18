@@ -64,6 +64,7 @@ class GameMaster(object):
     def reset(self):
         self.scores = {}
         self.matches = []
+        self.depth = 0
 
     def start(self, meta_time=10, move_time=5, initial_basestate=None):
         assert self.players
