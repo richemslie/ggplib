@@ -1,5 +1,4 @@
 import random
-from ggplib import interface as base_interface
 
 from ggplib.player.proxy import ProxyPlayer
 
@@ -54,7 +53,7 @@ class GurgehPlayer(ProxyPlayer):
     thread_workers = 2
     skip_single_moves = False
 
-    max_tree_search_time = -1
+    max_tree_search_time = 5
     max_number_of_nodes = 10000000
     max_memory = 1024 * 1024 * 1024 * 20
     max_tree_playout_iterations = 10000000
@@ -107,12 +106,7 @@ class GurgehPlayer(ProxyPlayer):
 
 def main():
     import sys
-    from twisted.internet import reactor
-    from twisted.web import server
-
-    from ggplib.util import log
-    from ggplib.server import GGPServer
-
+    from ggplib.play import play_runner
     port = int(sys.argv[1])
 
     # if second argument, set to player name
@@ -121,18 +115,8 @@ def main():
     except IndexError:
         player_name = "Gurgeh"
 
-    base_interface.initialise_k273(1, log_name_base=player_name)
-    log.initialise()
-
     player = GurgehPlayer(player_name)
-    log.info("Running gurgeh on port %d" % port)
-
-    ggp = GGPServer()
-    ggp.set_player(player)
-    site = server.Site(ggp)
-
-    reactor.listenTCP(port, site)
-    reactor.run()
+    play_runner(player, port)
 
 
 if __name__ == "__main__":
