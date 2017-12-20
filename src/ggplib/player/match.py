@@ -8,6 +8,7 @@ from ggplib.util.symbols import tokenize
 from ggplib.db import lookup
 from ggplib import interface
 
+
 ###################################################################################################
 
 class BadGame(Exception):
@@ -16,6 +17,7 @@ class BadGame(Exception):
 
 class CriticalError(Exception):
     pass
+
 
 ###################################################################################################
 
@@ -29,12 +31,15 @@ def replace_symbols(s, from_, to_):
         new_symbols.append(sym)
     return " ".join(new_symbols).replace('( ', '(').replace(' )', ')')
 
+
 ###################################################################################################
 
 class Match:
     def __init__(self, match_id, role, meta_time, move_time, player, gdl,
-                 verbose=True, cushion_time=-1):
+                 verbose=True, cushion_time=-1, no_cleanup=False):
         assert gdl is not None
+        self.load_game = True
+        self.no_cleanup = no_cleanup
 
         self.match_id = match_id
         self.role = role
@@ -61,6 +66,17 @@ class Match:
         self.sm = None
         self.game_name = None
 
+    def fast_reset(self, match_id, player, role):
+        assert self.player == player
+        assert self.role == role
+
+        self.match_id = match_id
+
+        if self.sm is not None:
+            self.load_game = False
+
+        self.cleanup(keep_sm=True)
+
     def get_current_state(self):
         # do not change this
         return self.states[-1]
@@ -77,10 +93,12 @@ class Match:
         if self.verbose:
             log.debug("Match.do_start(), time = %.1f" % (end_time - enter_time))
 
-        (self.gdl_symbol_mapping,
-         self.game_info) = lookup.by_gdl(self.gdl)
+        if self.load_game:
+            (self.gdl_symbol_mapping,
+             self.game_info) = lookup.by_gdl(self.gdl)
 
-        self.sm = self.game_info.get_sm()
+            self.sm = self.game_info.get_sm()
+
         self.sm.reset()
         if self.verbose:
             log.debug("Got state machine %s for game '%s' and match_id: %s" % (self.sm,
@@ -276,14 +294,15 @@ class Match:
             log.info("\n".join(buf))
             log.info("DONE!")
 
-        self.cleanup()
+        if not self.no_cleanup:
+            self.cleanup()
 
     def do_abort(self):
         log.warning("abort match %s" % self.match_id)
         self.cleanup()
         return "aborted"
 
-    def cleanup(self):
+    def cleanup(self, keep_sm=False):
         try:
             self.player.cleanup()
             if self.verbose:
@@ -308,11 +327,12 @@ class Match:
             interface.dealloc_jointmove(self.joint_move)
             self.joint_move = None
 
-        if self.sm:
+        if self.sm and not keep_sm:
             interface.dealloc_statemachine(self.sm)
             self.sm = None
 
-        log.info("match - done cleaning up")
+        if self.verbose:
+            log.info("match - done cleaning up")
 
     def __repr__(self):
         return "(id:%s role:%s meta:%s move:%s)" % (self.match_id,

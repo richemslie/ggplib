@@ -7,9 +7,12 @@ from ggplib.player.match import Match
 from ggplib.util.symbols import SymbolFactory
 
 
+# XXX match_id needs to be recreated each game
+
 class GameMaster(object):
-    def __init__(self, gdl_str, verbose=False):
+    def __init__(self, gdl_str, verbose=False, fast_reset=False):
         self.verbose = verbose
+        self.fast_reset = fast_reset
 
         # used to convert to base state
         self.symbol_factory = SymbolFactory()
@@ -18,6 +21,7 @@ class GameMaster(object):
         _, info = lookup.by_gdl(gdl_str)
         self.sm = info.get_sm()
         self.game = info.game
+        self.match_id = None
 
         # store a joint move / basestate internally
         self.joint_move = self.sm.get_joint_move()
@@ -34,10 +38,11 @@ class GameMaster(object):
         # updated after game is finished
         self.scores = {}
 
-        self.match_id = "a_%s_match_id_%d" % (self.game, random.randint(0, 100000))
-
         log.info("GAMEMASTER: create a gamemaster for game %s" % self.game)
-        self.matches = []
+        self.matches = None
+
+    def create_match_id(self):
+        return "a_%s_match_id_%d" % (self.game, random.randint(0, 100000))
 
     def add_player(self, player, role):
         self.players.append((player, role))
@@ -66,10 +71,13 @@ class GameMaster(object):
 
     def reset(self):
         self.scores = {}
-        self.matches = []
         self.depth = 0
+        if not self.fast_reset:
+            self.matches = None
 
     def start(self, meta_time=10, move_time=5, initial_basestate=None):
+        self.match_id = self.create_match_id()
+
         assert self.players
 
         if initial_basestate is not None:
@@ -82,25 +90,31 @@ class GameMaster(object):
             # reset state machine, returns it to initial state.
             self.sm.reset()
 
-        player_matches = []
-        for player, role in self.players:
-            match = Match(self.match_id, role, meta_time, move_time, player, self.gdl_str, verbose=False)
-            player_matches.append(match)
+        if self.matches is None:
+            player_matches = []
+            for player, role in self.players:
+                match = Match(self.match_id, role, meta_time, move_time, player, self.gdl_str,
+                              verbose=False, no_cleanup=True)
+                player_matches.append(match)
 
-            # call do start...
-            if self.verbose:
-                log.verbose("Starting for %s / %s" % (match.role, match.player))
-            match.do_start(initial_basestate=initial_basestate)
+                # call do start...
+                if self.verbose:
+                    log.verbose("Starting for %s / %s" % (match.role, match.player))
+                match.do_start(initial_basestate=initial_basestate)
 
-        # reorder matches to roles (and check that we have them)
-        self.matches = []
-        for role in self.sm.get_roles():
-            for match in player_matches:
-                if role == match.role:
-                    self.matches.append(match)
-                    break
+            # reorder matches to roles (and check that we have them)
+            self.matches = []
+            for role in self.sm.get_roles():
+                for match in player_matches:
+                    if role == match.role:
+                        self.matches.append(match)
+                        break
 
-        assert len(self.matches) == len(self.sm.get_roles())
+            assert len(self.matches) == len(self.sm.get_roles())
+        else:
+            for (player, role), match in zip(self.players, self.matches):
+                match.fast_reset(self.match_id, player, role)
+                match.do_start(initial_basestate=initial_basestate)
 
     def play_single_move(self, last_move=None):
         assert not self.finished()
@@ -161,7 +175,7 @@ class GameMaster(object):
             # and stop them
             match.do_stop()
 
-    def cleanup(self):
+    def cleanup(self, keep_sm=False):
         if self.next_basestate:
             interface.dealloc_basestate(self.next_basestate)
             self.next_basestate = None
@@ -170,6 +184,6 @@ class GameMaster(object):
             interface.dealloc_jointmove(self.joint_move)
             self.joint_move = None
 
-        if self.sm:
+        if not keep_sm and self.sm:
             interface.dealloc_statemachine(self.sm)
             self.sm = None
