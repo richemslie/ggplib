@@ -46,6 +46,9 @@ class GameMaster(object):
     def get_player(self, role_index):
         return self.players[role_index][0]
 
+    def get_score(self, role):
+        return self.scores[role]
+
     def convert_to_base_state(self, state_str):
         state_set = set()
         for state in self.symbol_factory.to_symbols(state_str):
