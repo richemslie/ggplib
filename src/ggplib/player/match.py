@@ -65,6 +65,7 @@ class Match:
         self.gdl_symbol_mapping = None
         self.sm = None
         self.game_name = None
+        self.game_depth = 0
 
     def fast_reset(self, match_id, player, role):
         assert self.player == player
@@ -81,9 +82,10 @@ class Match:
         # do not change this
         return self.states[-1]
 
-    def do_start(self, initial_basestate=None):
-        ''' Optional initial_basestate.  Used mostly for testing. If none will use the inital state
-            of state machine. '''
+    def do_start(self, initial_basestate=None, game_depth=0):
+        ''' Optional initial_basestate.  Used mostly for testing. If none will use the initial
+            state of state machine (and the game_depth will be zero).  Game depth may not be
+            handled by the base player. '''
 
         enter_time = time.time()
         end_time = enter_time + self.meta_time
@@ -145,12 +147,16 @@ class Match:
                                                                      self.our_role_index))
         assert self.our_role_index != -1
 
+        # starting point for the game (normally zero)
+        self.game_depth = game_depth
+
         # FINALLY : call the meta gaming stage on the player
         # note: on_meta_gaming must use self.match.get_current_state()
         self.player.reset(self)
         self.player.on_meta_gaming(end_time)
 
     def apply_move(self, moves):
+        self.game_depth += 1
         if self.verbose:
             log.debug("apply moves: %s" % (moves,))
 

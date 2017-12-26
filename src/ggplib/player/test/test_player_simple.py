@@ -22,7 +22,7 @@ def test_tictactoe_play():
 
     # check scores/depth make some sense
     assert sum(gm.scores.values()) == 100
-    assert 5 <= gm.depth <= 9
+    assert 5 <= gm.get_game_depth() <= 9
 
 
 def test_tictactoe_play_test_db_lookup():
@@ -42,7 +42,7 @@ def test_tictactoe_play_test_db_lookup():
 
     # check scores/depth make some sense
     assert sum(gm.scores.values()) == 100
-    assert 5 <= gm.depth <= 9
+    assert 5 <= gm.get_game_depth() <= 9
 
 
 def test_tictactoe_cpp_play():
@@ -57,7 +57,7 @@ def test_tictactoe_cpp_play():
 
     # check scores/depth make some sense
     assert sum(gm.scores.values()) == 100
-    assert 5 <= gm.depth <= 9
+    assert 5 <= gm.get_game_depth() <= 9
 
 
 def test_tictactoe_take_win():
@@ -92,7 +92,7 @@ def test_tictactoe_take_win():
     # check scores/depth make some sense
     assert gm.scores['xplayer'] == 100
     assert gm.scores['oplayer'] == 0
-    assert gm.depth == 1
+    assert gm.get_game_depth() == 1
 
 @pytest.mark.slow
 def test_breakthrough():
@@ -118,7 +118,7 @@ def test_breakthrough():
 
     # check scores/depth make some sense
     assert sum(gm.scores.values()) == 100
-    assert gm.depth >= 10
+    assert gm.get_game_depth() >= 10
 
 
 def test_not_in_db():
@@ -155,3 +155,25 @@ def test_not_in_db():
 
     gm.start(meta_time=10, move_time=5)
     gm.play_to_end()
+
+
+def test_speed():
+    gm = GameMaster(get_gdl_for_game("reversi"))
+
+    # add two python players
+    a = get.get_player("simplemcts")
+    a.skip_single_moves = True
+    a.max_tree_playout_iterations = 200
+
+    b = get.get_player("simplemcts")
+    b.skip_single_moves = True
+    b.max_tree_playout_iterations = 200
+
+    gm.add_player(a, "red")
+    gm.add_player(b, "black")
+
+    import time
+    gm.start(meta_time=10, move_time=5)
+    s = time.time()
+    gm.play_to_end()
+    print "DONE", time.time() - s

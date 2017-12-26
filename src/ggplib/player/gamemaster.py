@@ -33,7 +33,6 @@ class GameMaster(object):
 
         self.players = []
         self.players_map = {}
-        self.depth = 0
 
         # updated after game is finished
         self.scores = {}
@@ -54,6 +53,13 @@ class GameMaster(object):
     def get_score(self, role):
         return self.scores[role]
 
+    def get_game_depth(self):
+        # ask the first match what the depth is
+        if self.matches:
+            return self.matches[0].game_depth
+        else:
+            return -1
+
     def convert_to_base_state(self, state_str):
         state_set = set()
         for state in self.symbol_factory.to_symbols(state_str):
@@ -71,7 +77,6 @@ class GameMaster(object):
 
     def reset(self):
         self.scores = {}
-        self.depth = 0
         if not self.fast_reset:
             self.matches = None
 
@@ -149,7 +154,6 @@ class GameMaster(object):
         self.sm.next_state(self.joint_move, self.next_basestate)
         self.sm.update_bases(self.next_basestate)
 
-        self.depth += 1
         return tuple(new_last_move)
 
     def finished(self):
@@ -160,13 +164,14 @@ class GameMaster(object):
             last_move = self.play_single_move(last_move)
 
         if self.verbose:
-            log.verbose("Played to depth %d" % self.depth)
+            log.verbose("Played to depth %d" % self.get_game_depth())
             log.verbose("Last move %s" % (last_move,))
 
         for ri, role in enumerate(self.sm.get_roles()):
             score = self.sm.get_goal_value(ri)
             self.scores[role] = score
-            log.verbose("Final score for %s : %s " % (role, score))
+            if self.verbose:
+                log.verbose("Final score for %s : %s " % (role, score))
 
         # Need to do the final move for player
         for match in self.matches:
