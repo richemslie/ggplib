@@ -53,7 +53,7 @@ class GurgehPlayer(ProxyPlayer):
     thread_workers = 2
     skip_single_moves = False
 
-    max_tree_search_time = 5
+    max_tree_search_time = -1
     max_number_of_nodes = 10000000
     max_memory = 1024 * 1024 * 1024 * 20
     max_tree_playout_iterations = 10000000
