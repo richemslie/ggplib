@@ -1,0 +1,8 @@
+reminders / todos
+-----------------
+
+* It would be clean to push a copy of match details needs to pushed to the c++ code (this was how
+  the old galvanise was)
+
+
+
