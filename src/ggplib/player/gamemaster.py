@@ -29,6 +29,7 @@ class GameMaster(object):
 
         def get_base_tuple(i):
             return tuple(self.symbol_factory.to_symbols(self.sm.get_gdl(i)))[0]
+
         self.bases = [get_base_tuple(i) for i in range(self.next_basestate.len())]
 
         self.players = []
@@ -37,7 +38,8 @@ class GameMaster(object):
         # updated after game is finished
         self.scores = {}
 
-        log.info("GAMEMASTER: create a gamemaster for game %s" % self.game)
+        if verbose:
+            log.info("GAMEMASTER: create a gamemaster for game %s" % self.game)
         self.matches = None
 
     def create_match_id(self):
@@ -80,7 +82,7 @@ class GameMaster(object):
         if not self.fast_reset:
             self.matches = None
 
-    def start(self, meta_time=10, move_time=5, initial_basestate=None):
+    def start(self, meta_time=10, move_time=5, initial_basestate=None, game_depth=0):
         self.match_id = self.create_match_id()
 
         assert self.players
@@ -105,7 +107,7 @@ class GameMaster(object):
                 # call do start...
                 if self.verbose:
                     log.verbose("Starting for %s / %s" % (match.role, match.player))
-                match.do_start(initial_basestate=initial_basestate)
+                match.do_start(initial_basestate=initial_basestate, game_depth=game_depth)
 
             # reorder matches to roles (and check that we have them)
             self.matches = []
@@ -119,7 +121,7 @@ class GameMaster(object):
         else:
             for (player, role), match in zip(self.players, self.matches):
                 match.fast_reset(self.match_id, player, role)
-                match.do_start(initial_basestate=initial_basestate)
+                match.do_start(initial_basestate=initial_basestate, game_depth=game_depth)
 
     def play_single_move(self, last_move=None):
         assert not self.finished()
