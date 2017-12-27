@@ -13,7 +13,6 @@ class MatchPlayer(object):
         return self.name
 
     def reset(self, match):
-        log.info("Player reset with %s" % match.match_id)
         self.match = match
 
     def on_meta_gaming(self, finish_time):

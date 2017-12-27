@@ -172,7 +172,7 @@ class GameDatabase:
         if all_same:
             new_mapping = None
 
-        log.info("Lookup - found game %s in database" % info.game)
+        # log.info("Lookup - found game %s in database" % info.game)
 
         the_game_store = self.games_store.get_directory(info.game)
         info.lazy_load(the_game_store)
