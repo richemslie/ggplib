@@ -1,6 +1,6 @@
-ggplib/Gurgeh
-=============
+ggplib
+======
 
-Welcome to ggplib/Gurgeh!
+Welcome to ggplib!
 
-See the [ggplib/Gurgeh docs](https://ggplib.readthedocs.io) for building and usage instructions.
+See the [ggplib docs](https://ggplib.readthedocs.io) for building and usage instructions.

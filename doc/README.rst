@@ -16,7 +16,6 @@ python and c++.  Players included are :
 3. c++ random/legal player
 4. a very simple/minimal MCTS player
 5. ggtest - a test player for Tiltyard (just a configuration and some randomness to 4)
-6. gurgeh.  a fast MCTS player with some extra bells.
 
 
 propnet statemachine
@@ -88,8 +87,10 @@ build / running instructions
     cd $GGPLIB_PATH
     ggtest1.sh 9147
 
-6.  (Optional) To build run Gurgeh.  Gurgeh presents a full player utilising GGPLib.  This could be
-    in separate repo - it is presented here as an example of a standalone player.  All the code is
+6.  (Optional) To build run Gurgeh, a fast MCTS player with some extra bells and whistles.  XXX fix.
+
+    Gurgeh presents a full player utilising GGPLib.  This is simple example of a standalone player
+    using ggplib.  All the code is
     under $GGPLIB_PATH/gurgeh/src.
     Config options for Gurgeh player are found at $GGPLIB_PATH/gurgeh/src/gurgeh/player.py
     To build and run:
