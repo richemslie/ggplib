@@ -1,6 +1,6 @@
-GGPlib
+GGPLib
 ======
 
 Welcome to ggplib!
 
-See the [GGPlib docs](https://ggplib.readthedocs.io) for building and usage instructions.
+See the [GGPLib docs](https://ggplib.readthedocs.io) for building and usage instructions.
