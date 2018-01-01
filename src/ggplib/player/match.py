@@ -64,7 +64,6 @@ class Match:
         # set in do_start
         self.gdl_symbol_mapping = None
         self.sm = None
-        self.game_name = None
         self.game_depth = 0
 
     def fast_reset(self, match_id, player, role):
