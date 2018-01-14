@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include <unordered_map>
+#include <unordered_set>
 
 namespace GGPLib {
     struct BaseState {
@@ -86,6 +87,7 @@ namespace GGPLib {
 
     public:
         template <typename V> using HashMap = std::unordered_map <const BaseState*, V, Hasher, Equals>;
+        typedef std::unordered_set <const BaseState*, Hasher, Equals> HashSet;
     };
 
 
