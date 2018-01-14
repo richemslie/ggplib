@@ -15,6 +15,14 @@
 
 namespace K273 {
 
+    // just messing around
+    template <int k>
+    inline int round_up(int x) {
+        int z = (x / k) * k;
+        int cond = x != z;
+        return z + cond * k;
+    }
+
     inline void cpuRelax() {
         __asm__ __volatile__("rep; nop" : : : "memory");
     }
