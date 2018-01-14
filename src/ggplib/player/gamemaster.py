@@ -101,7 +101,7 @@ class GameMaster(object):
             player_matches = []
             for player, role in self.players:
                 match = Match(self.match_id, role, meta_time, move_time, player, self.gdl_str,
-                              verbose=False, no_cleanup=True)
+                              verbose=self.verbose, no_cleanup=True)
                 player_matches.append(match)
 
                 # call do start...
