@@ -207,6 +207,7 @@ def by_name(name, build_sm=True):
         # creates temporary files
         msg = "Lookup of %s failed: %s" % (name, exc)
         log.error(msg)
+        log.error(traceback.format_exc())
         raise LookupFailed(msg)
 
 def by_gdl(gdl):

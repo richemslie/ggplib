@@ -303,6 +303,7 @@ def get_and_test_control_bases(propnet):
             count += 1
 
     except Exception, exc:
+        import traceback
         print exc
         traceback.print_exc()
         success = False
