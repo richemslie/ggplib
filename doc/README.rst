@@ -32,7 +32,7 @@ in ggp-base.
 build / running instructions
 ============================
 
-1. To simplify installing, lets start with a fresh Ubuntu install (16.10).  Most of the packages can
+1. To simplify installing, lets start with a fresh Ubuntu install (17.10).  Most of the packages can
    be skipped/replaced depending on your install, etc.
 
 2. Log in with your user.  Install basic build tools: java, mercurial, git, pypy, gcc and make.
@@ -48,7 +48,15 @@ build / running instructions
 .. code-block:: shell
 
     # Clone repo wherever
-    git clone https://github.com/richemslie/ggplib
+    git clone https://github.com/ggplib/k273
+    cd k273
+    . bin/setup.sh
+    cd src/cpp
+    make
+    cd ../../..
+
+    # Clone repo wherever
+    git clone https://github.com/ggplib/ggplib
     cd ggplib
 
     # Setup pypy / install twisted
@@ -87,21 +95,23 @@ build / running instructions
     cd $GGPLIB_PATH
     ggtest1.sh 9147
 
-6.  (Optional) To build run Gurgeh, a fast MCTS player with some extra bells and whistles.  XXX fix.
-
-    Gurgeh presents a full player utilising GGPLib.  This is simple example of a standalone player
-    using ggplib.  All the code is
-    under $GGPLIB_PATH/gurgeh/src.
-    Config options for Gurgeh player are found at $GGPLIB_PATH/gurgeh/src/gurgeh/player.py
+6.  (Optional)
+    Gurgeh presents a full player utilising GGPLib.
+    To build gurgeh, clone and make.
+    Config options for Gurgeh player are found at gurgeh/src/gurgeh/player.py
     To build and run:
 
 .. code-block:: shell
 
-    cd $GGPLIB_PATH/gurgeh/src/cpp
+    # Clone repo wherever
+    git clone https://github.com/ggplib/gurgeh
+    cd gurgeh
+    . bin/setup.sh
+    cd src/cpp
     make
+    cd ../gurgeh
 
     # run Gurgeh on port 9147
-    cd $GGPLIB_PATH/gurgeh/src/gurgeh
     python player.py 9147
 
 7.  (Optional) To run tests.
