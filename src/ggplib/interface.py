@@ -48,7 +48,7 @@ def get_lib():
     return ffi, ffi.verify('#include <interface.h>\n',
                            include_dirs=[local_path],
                            library_dirs=[local_path],
-                           libraries=["rt", "ggplib_cpp"])
+                           libraries=["ggplib_cpp"])
 
 
 ffi, lib = get_lib()

@@ -1,17 +1,8 @@
+include $(K273_PATH)/src/cpp/Makefile.in
 
-INCLUDE_PATH = -I ./ -I /usr/include/jsoncpp
-LIB_PATH = ./
+LIBS = -L $(K273_PATH)/src/cpp/k273 -lk273
 
-AR = ar
-RM = rm -f
-CPP = g++
-
-CFLAGS = -MMD -MP -g -Wall -Werror -Woverloaded-virtual -Wnon-virtual-dtor -O3 -fPIC -fomit-frame-pointer -std=c++11
-LDFLAGS = -g -MMD -MP -Wall -Werror -Woverloaded-virtual -Wnon-virtual-dtor -O3 -fomit-frame-pointer -std=c++11
-
-
-# not part of gpplib...  but include until we release k273
-SRCS += k273/exception.cpp k273/logging.cpp k273/util.cpp k273/strutils.cpp k273/stacktrace.cpp k273/json.cpp
+CFLAGS += -fPIC
 
 SRCS += statemachine/basestate.cpp statemachine/propagate.cpp statemachine/combined.cpp
 SRCS += player/node.cpp player/rollout.cpp
@@ -30,11 +21,13 @@ all: $(OBJS) libggplib_cpp.so
 fresh : clean all
 
 # Compiles
+#-ljsoncpp
+
 libggplib_cpp.so: $(OBJS)
-	$(CPP) -shared $(CORE_OBJS) $(LDFLAGS) -L $(LIB_PATH) -pthread -lrt -ljsoncpp -o libggplib_cpp.so
+	$(CPP) -shared $(LDFLAGS) $(CORE_OBJS) $(LIBS) -o $@
 
 %.o : %.cpp
-	$(CPP) $(INCLUDE_PATH) $(CFLAGS) -c -o $@ $<
+	$(CPP) $(INCLUDE_PATHS) -I. $(CFLAGS) -c -o $@ $<
 
 # Cleans
 clean :

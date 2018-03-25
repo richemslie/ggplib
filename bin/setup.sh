@@ -1,3 +1,8 @@
+if [ -z "$K273_PATH" ]; then
+    echo "Please set \$K273_PATH"
+    return 1
+fi
+
 if [ -z "$GGPLIB_PATH" ]; then
     export GGPLIB_PATH=`python2 -c "import os.path as p; print p.dirname(p.dirname(p.abspath('$BASH_SOURCE')))"`
     echo "Automatically setting $GGPLIB_PATH to " $GGPLIB_PATH
