@@ -20,6 +20,7 @@ src/ggplib/props/*
 # 3rd party stuff
 bin/install
 ggp-base
+ggp-repository
 
 # log files
 *.log
