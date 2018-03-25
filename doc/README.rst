@@ -52,7 +52,7 @@ build / running instructions
     cd k273
     . bin/setup.sh
     cd src/cpp
-    make
+    make install
     cd ../../..
 
     # Clone repo wherever
