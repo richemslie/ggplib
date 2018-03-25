@@ -193,7 +193,7 @@ class StateMachine:
         return bs
 
     def basestate_to_str(self, bs):
-        ' helper '
+        ' helper XXX remove this.  Should use gameinfo'
         return " ".join([self.get_gdl(i) for i in range(bs.len()) if bs.get(i)])
 
 
