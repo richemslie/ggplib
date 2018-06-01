@@ -63,6 +63,10 @@ namespace GGPLib {
             this->count++;
         }
 
+        void clear() {
+            this->count = 0;
+        }
+
     private:
         int count;
 
