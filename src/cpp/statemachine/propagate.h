@@ -62,7 +62,6 @@ namespace GGPLib {
         void updateBases(const BaseState* bs);
         LegalState* getLegalState(int role_index);
 
-        const char* getGDL(int index) const;
         const char* legalToMove(int role_index, int choice) const;
 
         JointMove* getJointMove();
@@ -73,10 +72,6 @@ namespace GGPLib {
         void reset();
         int getRoleCount() const {
             return this->role_count;
-        }
-
-        const RoleInfo* getRoleInfo(int role_index) const {
-            return &this->roles[role_index];
         }
 
     private:

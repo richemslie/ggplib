@@ -346,11 +346,6 @@ LegalState* StateMachine::getLegalState(int role_index) {
     return &role->legal_state;
 }
 
-const char* StateMachine::getGDL(int index) const {
-    MetaComponentInfo* info = this->metas + index;
-    return info->gdl.c_str();
-}
-
 const char* StateMachine::legalToMove(int role_index, int choice) const {
     const RoleInfo* role_info = &this->roles[role_index];
     int legal_index = role_info->legal_start_index + choice;

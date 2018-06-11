@@ -46,7 +46,6 @@ extern "C" {
     void StateMachine__updateBases(StateMachine*, BaseState* bs);
     LegalState* StateMachine__getLegalState(StateMachine*, int role_index);
 
-    const char* StateMachine__getGDL(StateMachine*, int index);
     const char* StateMachine__legalToMove(StateMachine*, int role_index, int choice);
 
     JointMove* StateMachine__getJointMove(StateMachine*);

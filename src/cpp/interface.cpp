@@ -136,11 +136,6 @@ void* StateMachine__getLegalState(void* _sm, int role_index) {
     return (void *) sm->getLegalState(role_index);
 }
 
-const char* StateMachine__getGDL(void* _sm, int index) {
-    GGPLib::StateMachineInterface* sm = static_cast<GGPLib::StateMachineInterface*> (_sm);
-    return sm->getGDL(index);
-}
-
 const char* StateMachine__legalToMove(void* _sm, int role_index, int choice) {
     GGPLib::StateMachineInterface* sm = static_cast<GGPLib::StateMachineInterface*> (_sm);
     return sm->legalToMove(role_index, choice);
