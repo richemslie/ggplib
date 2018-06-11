@@ -27,9 +27,9 @@ class GameMaster(object):
         self.joint_move = self.sm.get_joint_move()
         self.next_basestate = self.sm.new_base_state()
 
+        # XXX we really shouldn't need to do this... why not just use model??? XXX
         def get_base_tuple(i):
-            return tuple(self.symbol_factory.to_symbols(self.sm.get_gdl(i)))[0]
-
+            return tuple(self.symbol_factory.to_symbols(info.model.bases[i]))[0]
         self.bases = [get_base_tuple(i) for i in range(self.next_basestate.len())]
 
         self.players = []

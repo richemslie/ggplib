@@ -35,3 +35,7 @@ class StateMachineModel(object):
 
             for a in ri.inputs:
                 actions.append(str(a.meta.gdl))
+
+    def basestate_to_str(self, bs):
+        ' from basestate to string '
+        return " ".join([self.bases[i] for i in range(bs.len()) if bs.get(i)])

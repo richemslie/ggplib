@@ -25,6 +25,21 @@ def test_tictactoe_play():
     assert 5 <= gm.get_game_depth() <= 9
 
 
+def test_tictactoe_play_verbose():
+    gm = GameMaster(get_gdl_for_game("ticTacToe"), verbose=True)
+
+    # add two python players
+    gm.add_player(get.get_player("pyrandom"), "xplayer")
+    gm.add_player(get.get_player("pylegal"), "oplayer")
+
+    gm.start(meta_time=10, move_time=5)
+    gm.play_to_end()
+
+    # check scores/depth make some sense
+    assert sum(gm.scores.values()) == 100
+    assert 5 <= gm.get_game_depth() <= 9
+
+
 def test_tictactoe_play_test_db_lookup():
     game_gdl_str = get_gdl_for_game("ticTacToe", dict(mark="kram",
                                                       noop="notamove",

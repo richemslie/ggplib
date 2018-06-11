@@ -113,7 +113,8 @@ class Match:
             initial_basestate = bs
 
             if self.verbose:
-                log.debug("The start state is %s" % self.sm.basestate_to_str(initial_basestate))
+                initial_str = self.game_info.model.basestate_to_str(initial_basestate)
+                log.debug("The start state is %s" % initial_str)
 
             # update the statemachine
             self.sm.update_bases(initial_basestate)
@@ -239,7 +240,8 @@ class Match:
 
         current_state = self.get_current_state()
         if self.verbose:
-            log.info("Current state : '%s'" % self.sm.basestate_to_str(current_state))
+            current_str = self.game_info.model.basestate_to_str(current_state)
+            log.info("Current state : '%s'" % current_str)
         self.sm.update_bases(current_state)
         if self.sm.is_terminal():
             return "done"

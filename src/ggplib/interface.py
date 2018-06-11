@@ -188,11 +188,6 @@ class StateMachine:
         lib.StateMachine__getCurrentState(self.c_statemachine, bs.c_base_state)
         return bs
 
-    def basestate_to_str(self, bs):
-        ' helper XXX remove this.  Should use gameinfo'
-        return " ".join([self.get_base_gdl(i) for i in range(bs.len()) if bs.get(i)])
-
-
 ###############################################################################
 
 def create_statemachine(buf, roles):

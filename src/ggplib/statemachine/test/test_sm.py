@@ -69,8 +69,6 @@ def create_and_play(sm):
     joint_move = sm.get_joint_move()
     base_state = sm.new_base_state()
 
-    log.verbose("initial state %s" % sm.basestate_to_str(sm.get_initial_state()))
-
     for move in play_moves:
         assert not sm.is_terminal()
 
@@ -85,7 +83,6 @@ def create_and_play(sm):
         # update state machine
         sm.next_state(joint_move, base_state)
         sm.update_bases(base_state)
-        log.verbose("current state %s" % sm.basestate_to_str(base_state))
 
     assert sm.is_terminal()
     assert sm.get_goal_value(0) == 100
