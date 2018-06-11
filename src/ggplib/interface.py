@@ -3,11 +3,11 @@ from cffi import FFI
 
 from ggplib.util import log
 
+# get the path
+d = os.path.dirname
+ggplib_local_path = os.path.join(d(d(os.path.abspath(__file__))), "cpp")
 
 def get_lib():
-    # get the paths
-    d = os.path.dirname
-    local_path = os.path.join(d(d(os.path.abspath(__file__))), "cpp")
 
     def process_line(line):
         # pre-process a line.  Skip any lines with comments.  Replace strings in remap.
@@ -44,10 +44,10 @@ def get_lib():
 
     # get ffi object, and lib object
     ffi = FFI()
-    ffi.cdef("\n".join(get_lines(os.path.join(local_path, "interface.h"))))
+    ffi.cdef("\n".join(get_lines(os.path.join(ggplib_local_path, "interface.h"))))
     return ffi, ffi.verify('#include <interface.h>\n',
-                           include_dirs=[local_path],
-                           library_dirs=[local_path],
+                           include_dirs=[ggplib_local_path],
+                           library_dirs=[ggplib_local_path],
                            libraries=["ggplib_cpp"])
 
 
@@ -163,10 +163,6 @@ class StateMachine:
     def get_legal_state(self, role_index):
         return LegalState(lib.StateMachine__getLegalState(self.c_statemachine, role_index))
 
-    def get_gdl(self, index):
-        c_charstar = lib.StateMachine__getGDL(self.c_statemachine, index)
-        return ffi.string(c_charstar)
-
     def legal_to_move(self, role_index, choice):
         c_charstar = lib.StateMachine__legalToMove(self.c_statemachine, role_index, choice)
         return ffi.string(c_charstar)
@@ -194,7 +190,7 @@ class StateMachine:
 
     def basestate_to_str(self, bs):
         ' helper XXX remove this.  Should use gameinfo'
-        return " ".join([self.get_gdl(i) for i in range(bs.len()) if bs.get(i)])
+        return " ".join([self.get_base_gdl(i) for i in range(bs.len()) if bs.get(i)])
 
 
 ###############################################################################
