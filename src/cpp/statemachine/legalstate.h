@@ -1,6 +1,7 @@
 #pragma once
 
 namespace GGPLib {
+    // delete positions XXX
 
     class LegalState {
 
