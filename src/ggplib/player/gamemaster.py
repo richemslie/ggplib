@@ -9,18 +9,24 @@ from ggplib.util.symbols import SymbolFactory
 
 # XXX match_id needs to be recreated each game
 
+# XXX deprecate gdl_str...
 class GameMaster(object):
-    def __init__(self, gdl_str, verbose=False, fast_reset=False):
+    def __init__(self, gdl_str, game_info=None, verbose=False, fast_reset=False):
+
+        if not gdl_str:
+            assert game_info is not None
+        else:
+            _, game_info = lookup.by_gdl(gdl_str)
+
+        self.game_info = game_info
         self.verbose = verbose
         self.fast_reset = fast_reset
 
         # used to convert to base state
         self.symbol_factory = SymbolFactory()
 
-        self.gdl_str = gdl_str
-        _, info = lookup.by_gdl(gdl_str)
-        self.sm = info.get_sm()
-        self.game = info.game
+        self.sm = self.game_info.get_sm()
+        self.game = self.game_info.game
         self.match_id = None
 
         # store a joint move / basestate internally
@@ -29,7 +35,8 @@ class GameMaster(object):
 
         # XXX we really shouldn't need to do this... why not just use model??? XXX
         def get_base_tuple(i):
-            return tuple(self.symbol_factory.to_symbols(info.model.bases[i]))[0]
+            return tuple(self.symbol_factory.to_symbols(game_info.model.bases[i]))[0]
+
         self.bases = [get_base_tuple(i) for i in range(self.next_basestate.len())]
 
         self.players = []
@@ -100,8 +107,10 @@ class GameMaster(object):
         if self.matches is None:
             player_matches = []
             for player, role in self.players:
-                match = Match(self.match_id, role, meta_time, move_time, player, self.gdl_str,
+
+                match = Match(self.match_id, role, meta_time, move_time, player, self.game_info,
                               verbose=self.verbose, no_cleanup=True)
+
                 player_matches.append(match)
 
                 # call do start...
@@ -133,7 +142,7 @@ class GameMaster(object):
 
             if self.verbose:
                 log.verbose("===============================================================")
-                log.verbose("do_play(%s) for %s / %s" % (last_move, role, match.player))
+                log.verbose("do_play(%s) for %s / %s" % (last_move, role, match.player.get_name()))
             move = match.do_play(last_move)
             new_last_move.append(move)
 
@@ -161,10 +170,7 @@ class GameMaster(object):
     def finished(self):
         return self.sm.is_terminal()
 
-    def play_to_end(self, last_move=None):
-        while not self.finished():
-            last_move = self.play_single_move(last_move)
-
+    def finalise_match(self, last_move):
         if self.verbose:
             log.verbose("Played to depth %d" % self.get_game_depth())
             log.verbose("Last move %s" % (last_move,))
@@ -181,6 +187,12 @@ class GameMaster(object):
 
             # and stop them
             match.do_stop()
+
+    def play_to_end(self, last_move=None):
+        while not self.finished():
+            last_move = self.play_single_move(last_move)
+
+        self.finalise_match(last_move)
 
     def cleanup(self, keep_sm=False):
         if self.next_basestate:
