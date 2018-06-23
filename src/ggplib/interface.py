@@ -61,6 +61,8 @@ ffi, lib = get_lib()
 class BaseState:
     def __init__(self, c_base_state):
         self.c_base_state = c_base_state
+        self.length = lib.BaseState__len(self.c_base_state)
+        self.num_bytes = lib.BaseState__rawBytes(self.c_base_state)
 
     def get(self, index):
         return lib.BaseState__get(self.c_base_state, index)
@@ -78,18 +80,21 @@ class BaseState:
         lib.BaseState__assign(self.c_base_state, other.c_base_state)
 
     def len(self):
-        return lib.BaseState__len(self.c_base_state)
+        return self.length
 
     def __eq__(self, other):
         return self.equals(other)
 
     def to_list(self):
         ' helper '
-        return [self.get(i) for i in range(self.len())]
+        return [self.get(i) for i in range(self.length)]
 
     def from_list(self, state):
         ' helper '
         [self.set(i, v) for i, v in enumerate(state)]
+
+    def to_string(self):
+        return ffi.unpack(lib.BaseState__raw(self.c_base_state), self.num_bytes)
 
 
 def dealloc_basestate(s):

@@ -91,6 +91,16 @@ void BaseState__delete(void* _bs) {
     ::free(bs);
 }
 
+char* BaseState__raw(void* _bs) {
+    GGPLib::BaseState* bs = static_cast<GGPLib::BaseState*> (_bs);
+    return (char *) bs->data;
+}
+
+int BaseState__rawBytes(void* _bs) {
+    GGPLib::BaseState* bs = static_cast<GGPLib::BaseState*> (_bs);
+    return bs->byte_count;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 void StateMachine__setInitialState(void* _sm, void* _bs) {

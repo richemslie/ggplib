@@ -29,6 +29,11 @@ extern "C" {
     int BaseState__len(BaseState*);
     void BaseState__delete(BaseState*);
 
+    // low level internal objects
+    char* BaseState__raw(BaseState*);
+    int BaseState__rawBytes(BaseState*);
+
+
     // StateMachine initialisation:
     void StateMachine__setInitialState(StateMachine*, BaseState* intial_state);
 
