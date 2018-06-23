@@ -35,15 +35,27 @@ def replace_symbols(s, from_, to_):
 ###################################################################################################
 
 class Match:
-    def __init__(self, match_id, role, meta_time, move_time, player, gdl,
+    def __init__(self, match_id, role, meta_time, move_time, player, gdl_or_game_info,
                  verbose=True, cushion_time=-1, no_cleanup=False):
-        assert gdl is not None
-        self.load_game = True
+        assert gdl_or_game_info is not None
+
+        if gdl_or_game_info is str:
+            self.gdl = gdl
+            self.game_info = None
+            self.load_game = True
+            self.gdl_symbol_mapping = None
+
+        else:
+            self.gdl = ""
+            self.game_info = gdl_or_game_info
+            self.load_game = False
+            self.gdl_symbol_mapping = {}
+
         self.no_cleanup = no_cleanup
 
         self.match_id = match_id
         self.role = role
-        self.gdl = gdl
+
         self.meta_time = meta_time
         self.move_time = move_time
 
@@ -62,7 +74,6 @@ class Match:
         self.player = player
 
         # set in do_start
-        self.gdl_symbol_mapping = None
         self.sm = None
         self.game_depth = 0
 
@@ -95,10 +106,11 @@ class Match:
             log.debug("Match.do_start(), time = %.1f" % (end_time - enter_time))
 
         if self.load_game:
-            (self.gdl_symbol_mapping,
-             self.game_info) = lookup.by_gdl(self.gdl)
+            if self.gdl:
+                (self.gdl_symbol_mapping,
+                 self.game_info) = lookup.by_gdl(self.gdl)
 
-            self.sm = self.game_info.get_sm()
+        self.sm = self.game_info.get_sm()
 
         self.sm.reset()
         if self.verbose:
