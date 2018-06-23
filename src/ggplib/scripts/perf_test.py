@@ -10,6 +10,10 @@ from ggplib.db import lookup
 
 VERSION = "0.9999"
 
+debug = True
+rollouts_in_c = True
+
+
 ###############################################################################
 
 def go(sm, seconds_to_run):
@@ -120,9 +124,6 @@ def main_2(game_name, seconds_to_run):
 
 
 ###############################################################################
-
-debug = True
-rollouts_in_c = True
 
 if __name__ == "__main__":
     interface.initialise_k273(1, log_name_base="perf_test")
