@@ -1,15 +1,15 @@
 #pragma once
 
 namespace GGPLib {
-    // delete positions XXX
-
     class LegalState {
 
     public:
         LegalState(int capacity=0) :
             count(0),
             capacity(0),
-            indices(nullptr) {
+            indices(nullptr),
+            positions(nullptr) {
+
             if (capacity) {
                 this->resize(capacity);
             }
@@ -17,21 +17,25 @@ namespace GGPLib {
 
         ~LegalState() {
             if (this->indices != nullptr) {
-                delete this->indices;
+                free(this->indices);
+                free(this->positions);
+                this->indices = nullptr;
+                this->positions = nullptr;
             }
         }
 
-        void resize(int capacity) {
-            if (capacity > this->capacity) {
+        void resize(int cap) {
+            if (cap > this->capacity) {
                 if (this->indices != nullptr) {
-                    delete this->indices;
+                    free(this->indices);
+                    free(this->positions);
                 }
 
-                this->indices = new int[capacity];
-                this->positions = new int[capacity];
+                this->indices = (int *) malloc(cap * sizeof(int));
+                this->positions = (int *) malloc(cap * sizeof(int));
             }
 
-            this->capacity = capacity;
+            this->capacity = cap;
         }
 
         int getCount() const {

@@ -39,7 +39,6 @@ Code here is derived from the above - copy Richard Emslie 2015.
 			(h) ^= (h) >> 47; })
 
 std::size_t BaseState::Hasher::operator() (const BaseState* key) const {
-    //uint64_t fasthash64(const void *buf, size_t len, uint64_t seed)
     const uint64_t seed = 42 * 42 * 42 * 42;
     const uint64_t    m = 0x880355f21e6d1965ULL;
     const uint64_t *pos = (const uint64_t *)key->data;
@@ -71,5 +70,3 @@ std::size_t BaseState::Hasher::operator() (const BaseState* key) const {
 
     return mix(h);
 }
-
-
