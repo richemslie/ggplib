@@ -127,6 +127,9 @@ class GameDatabase:
             raise LookupFailed("Did not find game: %s" % name)
         info = self.game_mapping[name]
 
+        if getattr(info, "special_game", False):
+            return info
+
         # for side effects
         info.get_symbol_map()
         the_game_store = self.games_store.get_directory(name)
@@ -198,6 +201,7 @@ def get_all_game_names():
     return get_database().all_games
 
 
+# XXX build_sm not used.
 def by_name(name, build_sm=True):
     try:
         db = get_database(verbose=False)
