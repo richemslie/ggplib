@@ -96,6 +96,9 @@ class BaseState:
     def to_string(self):
         return ffi.unpack(lib.BaseState__raw(self.c_base_state), self.num_bytes)
 
+    def from_string(self, raw_str):
+        lib.BaseState__setRaw(self.c_base_state, raw_str)
+
 
 def dealloc_basestate(s):
     lib.BaseState__delete(s.c_base_state)

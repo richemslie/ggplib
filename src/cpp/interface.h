@@ -32,7 +32,7 @@ extern "C" {
     // low level internal objects
     char* BaseState__raw(BaseState*);
     int BaseState__rawBytes(BaseState*);
-
+    void BaseState__setRaw(BaseState*, const char* buf);
 
     // StateMachine initialisation:
     void StateMachine__setInitialState(StateMachine*, BaseState* intial_state);

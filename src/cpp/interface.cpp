@@ -17,6 +17,7 @@
 
 #include "statemachine/jointmove.h"
 
+#include "k273/algo.h"
 #include "k273/json.h"
 #include <k273/logging.h>
 #include <k273/exception.h>
@@ -93,12 +94,28 @@ void BaseState__delete(void* _bs) {
 
 char* BaseState__raw(void* _bs) {
     GGPLib::BaseState* bs = static_cast<GGPLib::BaseState*> (_bs);
-    return (char *) bs->data;
+    uint8_t* buf = (uint8_t*) malloc(bs->byte_count);
+    uint8_t* pt_bs_data = (uint8_t*) bs->data;
+    for (int ii=0; ii<bs->byte_count; ii++) {
+        buf[ii] = K273::reverseByte(pt_bs_data[ii]);
+    }
+
+    return (char *) buf;
 }
 
 int BaseState__rawBytes(void* _bs) {
     GGPLib::BaseState* bs = static_cast<GGPLib::BaseState*> (_bs);
     return bs->byte_count;
+}
+
+void BaseState__setRaw(void* _bs, const char* buf) {
+    GGPLib::BaseState* bs = static_cast<GGPLib::BaseState*> (_bs);
+
+    uint8_t* pt_buf = (uint8_t*) buf;
+    uint8_t* pt_bs_data = (uint8_t*) bs->data;
+    for (int ii=0; ii<bs->byte_count; ii++) {
+        pt_bs_data[ii] = K273::reverseByte(pt_buf[ii]);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
