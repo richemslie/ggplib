@@ -1,6 +1,6 @@
 from ggplib.player import get
 from ggplib.player.gamemaster import GameMaster
-from ggplib.db.helper import get_gdl_for_game
+from ggplib.db import lookup
 
 import pytest
 
@@ -11,7 +11,7 @@ def setup():
 
 
 def test_tictactoe_play():
-    gm = GameMaster(get_gdl_for_game("ticTacToe"))
+    gm = GameMaster(lookup.by_name("ticTacToe"))
 
     # add two python players
     gm.add_player(get.get_player("pyrandom"), "xplayer")
@@ -26,27 +26,7 @@ def test_tictactoe_play():
 
 
 def test_tictactoe_play_verbose():
-    gm = GameMaster(get_gdl_for_game("ticTacToe"), verbose=True)
-
-    # add two python players
-    gm.add_player(get.get_player("pyrandom"), "xplayer")
-    gm.add_player(get.get_player("pylegal"), "oplayer")
-
-    gm.start(meta_time=10, move_time=5)
-    gm.play_to_end()
-
-    # check scores/depth make some sense
-    assert sum(gm.scores.values()) == 100
-    assert 5 <= gm.get_game_depth() <= 9
-
-
-def test_tictactoe_play_test_db_lookup():
-    game_gdl_str = get_gdl_for_game("ticTacToe", dict(mark="kram",
-                                                      noop="notamove",
-                                                      cell="bell",
-                                                      oplayer="doobie"))
-
-    gm = GameMaster(game_gdl_str)
+    gm = GameMaster(lookup.by_name("ticTacToe"), verbose=True)
 
     # add two python players
     gm.add_player(get.get_player("pyrandom"), "xplayer")
@@ -61,7 +41,7 @@ def test_tictactoe_play_test_db_lookup():
 
 
 def test_tictactoe_cpp_play():
-    gm = GameMaster(get_gdl_for_game("ticTacToe"))
+    gm = GameMaster(lookup.by_name("ticTacToe"))
 
     # add two c++ players
     gm.add_player(get.get_player("random"), "xplayer")
@@ -76,7 +56,7 @@ def test_tictactoe_cpp_play():
 
 
 def test_tictactoe_take_win():
-    gm = GameMaster(get_gdl_for_game("ticTacToe"))
+    gm = GameMaster(lookup.by_name("ticTacToe"))
 
     # add two c++ players
     gm.add_player(get.get_player("ggtest1"), "xplayer")
@@ -109,10 +89,11 @@ def test_tictactoe_take_win():
     assert gm.scores['oplayer'] == 0
     assert gm.get_game_depth() == 1
 
+
 @pytest.mark.slow
 def test_breakthrough():
     ' mcs player vs ggtest1 '
-    gm = GameMaster(get_gdl_for_game("breakthrough"))
+    gm = GameMaster(lookup.by_name("breakthrough"))
 
     # add two players
     white = get.get_player("pymcs")
@@ -162,7 +143,8 @@ def test_not_in_db():
   (<= terminal (true o3))
     """
 
-    gm = GameMaster(some_simple_game)
+    _, game_info = lookup.by_gdl(some_simple_game)
+    gm = GameMaster(game_info)
 
     # add two python players
     gm.add_player(get.get_player("pyrandom"), "black")
@@ -173,7 +155,7 @@ def test_not_in_db():
 
 
 def test_speed():
-    gm = GameMaster(get_gdl_for_game("reversi"))
+    gm = GameMaster(lookup.by_name("reversi"))
 
     # add two python players
     a = get.get_player("simplemcts")
