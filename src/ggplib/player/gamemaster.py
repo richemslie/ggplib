@@ -2,22 +2,14 @@ import random
 from ggplib.util import log
 from ggplib import interface
 
-from ggplib.db import lookup
 from ggplib.player.match import Match
 from ggplib.util.symbols import SymbolFactory
 
 
 # XXX match_id needs to be recreated each game
 
-# XXX deprecate gdl_str...
 class GameMaster(object):
-    def __init__(self, gdl_str, game_info=None, verbose=False, fast_reset=False):
-
-        if not gdl_str:
-            assert game_info is not None
-        else:
-            _, game_info = lookup.by_gdl(gdl_str)
-
+    def __init__(self, game_info, verbose=False, fast_reset=False):
         self.game_info = game_info
         self.verbose = verbose
         self.fast_reset = fast_reset
@@ -47,6 +39,7 @@ class GameMaster(object):
 
         if verbose:
             log.info("GAMEMASTER: create a gamemaster for game %s" % self.game)
+
         self.matches = None
 
     def create_match_id(self):
@@ -108,8 +101,8 @@ class GameMaster(object):
             player_matches = []
             for player, role in self.players:
 
-                match = Match(self.match_id, role, meta_time, move_time, player, self.game_info,
-                              verbose=self.verbose, no_cleanup=True)
+                match = Match(self.game_info, self.match_id, role, meta_time, move_time,
+                              player, verbose=self.verbose, no_cleanup=True)
 
                 player_matches.append(match)
 

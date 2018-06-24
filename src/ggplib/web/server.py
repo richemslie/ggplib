@@ -2,7 +2,6 @@
 http stuff via twisted
 '''
 
-import sys
 import time
 import pprint
 import traceback
@@ -10,11 +9,11 @@ import traceback
 from twisted.internet import reactor
 from twisted.internet import task
 
-from twisted.web import server
 from twisted.web.resource import Resource
 
 from ggplib.util.symbols import SymbolFactory, ListTerm
 from ggplib.util import log
+from ggplib.db import lookup
 
 from ggplib.player import match
 
@@ -31,6 +30,7 @@ GAMESERVER_TIMEOUT = 60 * 20
 # timeouts.
 
 CUSHION_TIME = 1.5
+
 
 ###############################################################################
 
@@ -151,7 +151,13 @@ class GGPServer(Resource):
             return "busy"
         else:
             log.info("Starting new match %s" % match_id)
-            self.current_match = match.Match(match_id, role, meta_time, move_time, self.player, gdl, cushion_time=CUSHION_TIME)
+
+            # lookup game and create match
+            gdl_symbol_mapping, game_info = lookup.by_gdl(gdl)
+            self.current_match = match.Match(game_info, match_id, role, meta_time,
+                                             move_time, self.player,
+                                             cushion_time=CUSHION_TIME,
+                                             gdl_symbol_mapping=gdl_symbol_mapping)
             try:
                 # start gameserver timeout
                 self.update_gameserver_timeout(self.current_match.meta_time)
@@ -232,7 +238,7 @@ class GGPServer(Resource):
         assert self.current_match is not None
 
         try:
-            res = self.current_match.do_abort()
+            self.current_match.do_abort()
         except Exception as exc:
             log.critical("CRITICAL ERROR - during abort: %s" % exc)
             log.critical(traceback.format_exc())
