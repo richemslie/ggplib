@@ -5,7 +5,6 @@ import traceback
 from ggplib.util import log
 from ggplib.util.symbols import tokenize
 
-from ggplib.db import lookup
 from ggplib import interface
 
 
@@ -35,20 +34,11 @@ def replace_symbols(s, from_, to_):
 ###################################################################################################
 
 class Match:
-    def __init__(self, match_id, role, meta_time, move_time, player, gdl_or_game_info,
-                 verbose=True, cushion_time=-1, no_cleanup=False):
-        assert gdl_or_game_info is not None
+    def __init__(self, game_info, match_id, role, meta_time, move_time, player,
+                 verbose=True, cushion_time=-1, no_cleanup=False, gdl_symbol_mapping=None):
+        self.game_info = game_info
 
-        if gdl_or_game_info is str:
-            self.gdl = gdl
-            self.game_info = None
-            self.load_game = True
-            self.gdl_symbol_mapping = None
-
-        else:
-            self.gdl = ""
-            self.game_info = gdl_or_game_info
-            self.load_game = False
+        if gdl_symbol_mapping is None:
             self.gdl_symbol_mapping = {}
 
         self.no_cleanup = no_cleanup
@@ -82,10 +72,6 @@ class Match:
         assert self.role == role
 
         self.match_id = match_id
-
-        if self.sm is not None:
-            self.load_game = False
-
         self.cleanup(keep_sm=True)
 
     def get_current_state(self):
@@ -105,12 +91,8 @@ class Match:
         if self.verbose:
             log.debug("Match.do_start(), time = %.1f" % (end_time - enter_time))
 
-        if self.load_game:
-            if self.gdl:
-                (self.gdl_symbol_mapping,
-                 self.game_info) = lookup.by_gdl(self.gdl)
-
-        self.sm = self.game_info.get_sm()
+        if self.sm is None:
+            self.sm = self.game_info.get_sm()
 
         self.sm.reset()
         if self.verbose:
