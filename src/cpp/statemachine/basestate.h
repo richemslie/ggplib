@@ -52,10 +52,8 @@ namespace GGPLib {
         }
 
         bool equals(const BaseState* other) const {
-            const ArrayType* pt_data = this->data;
-            const ArrayType* pt_other = other->data;
             for (int ii=0; ii<this->byte_count; ii++) {
-                if (*pt_data != *pt_other) {
+                if (this->data[ii] != other->data[ii]) {
                     return false;
                 }
             }
@@ -78,7 +76,42 @@ namespace GGPLib {
             bool operator() (const BaseState* a, const BaseState* b) const {
                 return a->equals(b);
             }
-    };
+        };
+
+
+        struct HasherMasked {
+            HasherMasked(const ArrayType* mask_buf) :
+                mask_buf(mask_buf) {
+            }
+
+            std::size_t operator() (const BaseState* key) const;
+
+        private:
+            const ArrayType* mask_buf;
+        };
+
+        struct EqualsMasked {
+            EqualsMasked(const ArrayType* mask_buf) :
+                mask_buf(mask_buf) {
+            }
+
+            bool operator() (const BaseState* a, const BaseState* b) const {
+                for (int ii=0; ii<a->byte_count; ii++) {
+                    ArrayType aa = a->data[ii] & this->mask_buf[ii];
+                    ArrayType bb = b->data[ii] & this->mask_buf[ii];
+
+                    if (aa != bb) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+        private:
+            const ArrayType* mask_buf;
+        };
+
 
     public:
         short size;
@@ -87,6 +120,20 @@ namespace GGPLib {
 
     public:
         template <typename V> using HashMap = std::unordered_map <const BaseState*, V, Hasher, Equals>;
+
+        template <typename V> using HashMapMasked = std::unordered_map <const BaseState*, V, HasherMasked, EqualsMasked>;
+
+        template <typename V>
+        static HashMapMasked<V>* makeMaskedMap(const ArrayType* mask_buf,
+                                               typename HashMapMasked<V>::size_type bucket_size=0) {
+            return new std::unordered_map <const BaseState*,
+                                           V,
+                                           HasherMasked,
+                                           EqualsMasked> (bucket_size,
+                                                          HasherMasked(mask_buf),
+                                                          EqualsMasked(mask_buf));
+        }
+
         typedef std::unordered_set <const BaseState*, Hasher, Equals> HashSet;
     };
 

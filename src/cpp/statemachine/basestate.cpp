@@ -70,3 +70,64 @@ std::size_t BaseState::Hasher::operator() (const BaseState* key) const {
 
     return mix(h);
 }
+
+std::size_t BaseState::HasherMasked::operator() (const BaseState* key) const {
+    const int rem = key->byte_count % 8;
+
+    // magics:
+    const uint64_t seed = 42 * 42 * 42 * 42;
+    const uint64_t m = 0x880355f21e6d1965ULL;
+    uint64_t h = seed ^ (key->byte_count * m);
+
+    // ptr to data/mask
+    const uint64_t* pos = (const uint64_t*) key->data;
+    const uint64_t* mask_pos = (const uint64_t*) this->mask_buf;
+
+    // only need one end
+    const uint64_t* end = pos + (key->byte_count / 8);
+
+    uint64_t v = 0;
+
+    // do 8 byte chunks
+    while (pos != end) {
+        uint64_t v = *pos++;
+
+        // perform mask here
+        v &= *mask_pos++;
+
+        h ^= mix(v);
+        h *= m;
+    }
+
+    v = 0;
+    const uint8_t *byte_pos = (const uint8_t*) pos;
+    const uint8_t* byte_mask_pos = (const uint8_t*) mask_pos;
+
+    switch (rem) {
+    case 7:
+        v ^= (uint64_t)byte_pos[6] << 48;
+        v &= (uint64_t)byte_mask_pos[6] << 48;
+    case 6:
+        v ^= (uint64_t)byte_pos[5] << 40;
+        v &= (uint64_t)byte_mask_pos[5] << 40;
+    case 5:
+        v ^= (uint64_t)byte_pos[4] << 32;
+        v &= (uint64_t)byte_mask_pos[4] << 32;
+    case 4:
+        v ^= (uint64_t)byte_pos[3] << 24;
+        v &= (uint64_t)byte_mask_pos[3] << 24;
+    case 3:
+        v ^= (uint64_t)byte_pos[2] << 16;
+        v &= (uint64_t)byte_mask_pos[2] << 16;
+    case 2:
+        v ^= (uint64_t)byte_pos[1] << 8;
+        v &= (uint64_t)byte_mask_pos[1] << 8;
+    case 1:
+        v ^= (uint64_t)byte_pos[0];
+        v &= (uint64_t)byte_mask_pos[0];
+        h ^= mix(v);
+        h *= m;
+    }
+
+    return mix(h);
+}
