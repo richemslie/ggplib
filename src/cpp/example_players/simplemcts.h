@@ -10,6 +10,7 @@
 #include "statemachine/jointmove.h"
 #include "statemachine/statemachine.h"
 
+#include <string>
 #include <vector>
 
 namespace GGPLib {
@@ -52,6 +53,9 @@ namespace GGPLib {
     public:
         // interface:
         virtual void onMetaGaming(double end_time);
+
+        virtual std::string beforeApplyInfo();
+
         virtual void onApplyMove(JointMove* move);
         virtual int onNextMove(double end_time);
 

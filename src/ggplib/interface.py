@@ -7,6 +7,7 @@ from ggplib.util import log
 d = os.path.dirname
 ggplib_local_path = os.path.join(d(d(os.path.abspath(__file__))), "cpp")
 
+
 def get_lib():
 
     def process_line(line):
@@ -196,6 +197,7 @@ class StateMachine:
         lib.StateMachine__getCurrentState(self.c_statemachine, bs.c_base_state)
         return bs
 
+
 ###############################################################################
 
 def create_statemachine(buf, roles):
@@ -224,7 +226,7 @@ def dealloc_statemachine(sm):
 class CppPlayerWrapper:
     def __init__(self, c_player):
         self.c_player = c_player
-        log.info("creating CppPlayerWrapepr with %s" % self.c_player)
+        log.info("creating CppPlayerWrapper with %s" % self.c_player)
 
     def cleanup(self):
         lib.PlayerBase__cleanup(self.c_player)

@@ -297,6 +297,20 @@ void Player::onMetaGaming(double end_time) {
     this->onNextMove(end_time - 1);
 }
 
+std::string Player::beforeApplyInfo() {
+    if (this->root != nullptr) {
+        NodeChild* best = this->chooseBest(this->root);
+        if (best != nullptr && best->to_node != nullptr) {
+            return K273::fmtString("nodes=%d, visits=%d, best_prob=%.3f",
+                                   this->number_of_nodes,
+                                   this->root->visits,
+                                   best->to_node->getScore(this->our_role_index));
+        }
+    }
+
+    return "";
+}
+
 void Player::onApplyMove(JointMove* last_move) {
 
     this->game_depth++;

@@ -32,7 +32,7 @@ class ProxyPlayer(MatchPlayer):
         self.proxy.on_meta_gaming(finish_time)
 
     def before_apply_info(self):
-        self.proxy.before_apply_info()
+        return self.proxy.before_apply_info()
 
     def on_apply_move(self, move):
         self.sm.update_bases(self.match.get_current_state())
