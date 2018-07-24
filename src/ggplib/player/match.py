@@ -39,7 +39,9 @@ class Match:
         self.game_info = game_info
 
         if gdl_symbol_mapping is None:
-            self.gdl_symbol_mapping = {}
+            gdl_symbol_mapping = {}
+
+        self.gdl_symbol_mapping = gdl_symbol_mapping
 
         self.no_cleanup = no_cleanup
 
