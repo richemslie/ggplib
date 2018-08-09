@@ -38,4 +38,7 @@ class StateMachineModel(object):
 
     def basestate_to_str(self, bs):
         ' from basestate to string '
-        return " ".join([self.bases[i] for i in range(bs.len()) if bs.get(i)])
+        if isinstance(bs, (list, tuple)):
+            return " ".join([self.bases[i] for i in range(len(bs)) if bs[i]])
+        else:
+            return " ".join([self.bases[i] for i in range(bs.len()) if bs.get(i)])

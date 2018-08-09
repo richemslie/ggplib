@@ -13,5 +13,5 @@ def setup_once(log_name_base="test"):
     try:
         from gzero_games.ggphack import addgame
         addgame.install_games()
-    except ImportError:
-        print "No gzero_games added"
+    except Exception as exc:
+        ggplib.util.log.error("No gzero_games added: %s" % exc)
