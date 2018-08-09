@@ -65,7 +65,7 @@ namespace GGPLib {
             std::memcpy(this->data, other->data, this->byte_count * ARRAYTYPE_BYTES);
         }
 
-    private:
+    public:
         void calculateHashCode();
 
         struct Hasher {
