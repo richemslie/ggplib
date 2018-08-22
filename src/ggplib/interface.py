@@ -158,8 +158,9 @@ class StateMachine:
         new_c_statemachine = lib.StateMachine__dupe(self.c_statemachine)
         return StateMachine(new_c_statemachine, self._roles)
 
-    def get_initial_state(self):
-        bs = self.new_base_state()
+    def get_initial_state(self, bs=None):
+        if bs is None:
+            bs = self.new_base_state()
         lib.StateMachine__getInitialState(self.c_statemachine, bs.c_base_state)
         return bs
 
