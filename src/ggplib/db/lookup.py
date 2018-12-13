@@ -214,6 +214,7 @@ def by_name(name, build_sm=True):
         log.error(traceback.format_exc())
         raise LookupFailed(msg)
 
+
 def by_gdl(gdl):
     try:
         gdl_str = gdl
