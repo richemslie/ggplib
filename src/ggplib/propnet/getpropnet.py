@@ -28,7 +28,7 @@ def load_module(kif_filename):
         java and use ggp-base to create the module. '''
 
     basename, props_file = kif_filename_to_propfile(kif_filename)
-    for cmd in ["java -J-XX:+UseSerialGC -J-Xmx8G propnet_convert.Convert %s %s" % (kif_filename, props_file),
+    for cmd in ["java -XX:+UseSerialGC -Xmx8G propnet_convert.Convert %s %s" % (kif_filename, props_file),
                 "java propnet_convert.Convert %s %s" % (kif_filename, props_file),
                 "SOMETHING IS BROKEN in install ..."]:
         try:
