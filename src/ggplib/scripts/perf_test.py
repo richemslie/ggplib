@@ -11,12 +11,11 @@ from ggplib.db import lookup
 VERSION = "0.9999"
 
 debug = True
-rollouts_in_c = True
 
 
 ###############################################################################
 
-def go(sm, seconds_to_run):
+def go(sm, seconds_to_run, rollouts_in_c=True):
     log.verbose("running depth charges for %s seconds %s" % (seconds_to_run, "(in c)" if rollouts_in_c else ""))
 
     if rollouts_in_c:
