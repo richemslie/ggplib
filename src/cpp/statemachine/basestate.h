@@ -16,7 +16,11 @@ namespace GGPLib {
         static int const ARRAYTYPE_BITS = 8;
 
         static int mallocSize(int num_bases) {
-            int bytes_for_bases = num_bases / BaseState::ARRAYTYPE_BYTES + 1;
+            int bytes_for_bases = num_bases / BaseState::ARRAYTYPE_BITS;
+            if (num_bases % ARRAYTYPE_BITS != 0) {
+                bytes_for_bases++;
+            }
+
             return sizeof(BaseState) + bytes_for_bases;
         }
 
@@ -24,7 +28,11 @@ namespace GGPLib {
         // This should override new/delete where the 'data; is part of the allocation
         void init(const int size) {
             this->size = size;
-            this->byte_count = size / ARRAYTYPE_BITS + 1;
+            this->byte_count = size / ARRAYTYPE_BITS;
+            if (size % ARRAYTYPE_BITS != 0) {
+                this->byte_count++;
+            }
+
             std::memset(this->data, 0, this->byte_count * ARRAYTYPE_BYTES);
         }
 
