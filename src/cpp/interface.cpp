@@ -17,8 +17,12 @@
 
 #include "statemachine/jointmove.h"
 
-#include "k273/algo.h"
-#include "k273/json.h"
+#include "external/draughts_desc.h"
+#include "external/draughts_board.h"
+#include "external/draughts_sm.h"
+
+#include <k273/algo.h>
+#include <k273/json.h>
 #include <k273/logging.h>
 #include <k273/exception.h>
 
@@ -476,6 +480,40 @@ void* createCombinedStateMachineFromJSON(const char* msg, int size) {
         combined->reset();
 
         GGPLib::StateMachineInterface* sm = combined;
+        return (void *) sm;
+
+    } catch (...) {
+        logExceptionWrapper(__PRETTY_FUNCTION__);
+    }
+
+    return nullptr;
+}
+
+void* getSMDraughts_10x10() {
+    K273::l_info("in getSMDraughts_10x10()");
+
+    try {
+        InternationalDraughts::Description* desc = new InternationalDraughts::Description(10);
+        InternationalDraughts::Board* board = new InternationalDraughts::Board(desc);
+        GGPLib::StateMachineInterface* sm = new InternationalDraughts::SM(board, desc);
+
+        return (void *) sm;
+
+    } catch (...) {
+        logExceptionWrapper(__PRETTY_FUNCTION__);
+    }
+
+    return nullptr;
+}
+
+void* getSMDraughtsKiller_10x10() {
+    K273::l_info("in getSMDraughtsKiller_10x10()");
+
+    try {
+        InternationalDraughts::Description* desc = new InternationalDraughts::Description(10);
+        InternationalDraughts::Board* board = new InternationalDraughts::Board(desc, false, true);
+        GGPLib::StateMachineInterface* sm = new InternationalDraughts::SM(board, desc);
+
         return (void *) sm;
 
     } catch (...) {
