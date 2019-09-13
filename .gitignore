@@ -24,3 +24,6 @@ ggp-repository
 
 # log files
 *.log
+
+core
+.pytest_cache
