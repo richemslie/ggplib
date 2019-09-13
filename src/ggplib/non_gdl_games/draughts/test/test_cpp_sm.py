@@ -4,7 +4,7 @@ from pprint import pprint
 
 from ggplib.db import lookup
 
-from ggplib.non_gdl_games import draughts_spec as spec
+from ggplib.non_gdl_games.draughts import spec
 
 
 def setup():

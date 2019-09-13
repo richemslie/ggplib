@@ -207,12 +207,12 @@ class GameDatabase:
 def install_draughts(add_game):
     ' load custom c++ statemachine for draughts '
     from ggplib import interface
-    from ggplib.non_gdl_games import draughts_spec, draughts_model
+    from ggplib.non_gdl_games.draughts import spec, model
 
-    desc10 = draughts_spec.BoardDesc(10)
+    desc10 = spec.BoardDesc(10)
 
     cpp_statemachines = interface.CppStateMachines()
-    model = draughts_model.create_sm_model(desc10)
+    model = model.create_sm_model(desc10)
 
     for game_variant in ["draughts_10x10",
                          "draughts_killer_10x10",
