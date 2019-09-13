@@ -1,7 +1,7 @@
 #pragma once
 
 // local includes
-#include "draughts_desc.h"
+#include "desc.h"
 
 // ggplib includes
 #include <statemachine/jointmove.h>

@@ -17,9 +17,9 @@
 
 #include "statemachine/jointmove.h"
 
-#include "external/draughts_desc.h"
-#include "external/draughts_board.h"
-#include "external/draughts_sm.h"
+#include "statemachine/external/draughts/desc.h"
+#include "statemachine/external/draughts/board.h"
+#include "statemachine/external/draughts/sm.h"
 
 #include <k273/algo.h>
 #include <k273/json.h>

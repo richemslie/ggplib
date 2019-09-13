@@ -9,7 +9,8 @@ SRCS += player/node.cpp player/rollout.cpp
 
 SRCS += example_players/randomplayer.cpp example_players/legalplayer.cpp example_players/simplemcts.cpp
 
-SRCS += external/draughts_board.cpp external/draughts_desc.cpp external/draughts_init.cpp external/draughts_sm.cpp
+DRAUGHTS = statemachine/external/draughts
+SRCS += $(DRAUGHTS)/board.cpp $(DRAUGHTS)/desc.cpp $(DRAUGHTS)/init.cpp $(DRAUGHTS)/sm.cpp
 
 SRCS += perf_test.cpp interface.cpp
 

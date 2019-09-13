@@ -1,5 +1,5 @@
 // local includes
-#include "draughts_desc.h"
+#include "desc.h"
 
 // k273 includes
 #include <k273/logging.h>

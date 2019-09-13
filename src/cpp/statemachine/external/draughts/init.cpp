@@ -1,8 +1,8 @@
 
 
 // local includes
-#include "draughts_desc.h"
-#include "draughts_board.h"
+#include "desc.h"
+#include "board.h"
 
 // k273 includes
 #include <k273/util.h>
