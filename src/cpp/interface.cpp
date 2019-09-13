@@ -489,15 +489,19 @@ void* createCombinedStateMachineFromJSON(const char* msg, int size) {
     return nullptr;
 }
 
-void* getSMDraughts_10x10() {
-    K273::l_info("in getSMDraughts_10x10()");
+static GGPLib::StateMachineInterface* getSMDraughts(int size, bool breakthrough_mode, bool killer_mode) {
+    K273::l_info("in getSMDraughts size: %d [%s;%s])", size,
+                 breakthrough_mode ? "breakthrough_mode" : "",
+                 killer_mode ? "killer_mode" : "");
 
     try {
-        InternationalDraughts::Description* desc = new InternationalDraughts::Description(10);
-        InternationalDraughts::Board* board = new InternationalDraughts::Board(desc);
+        ASSERT(!(breakthrough_mode && killer_mode));
+
+        InternationalDraughts::Description* desc = new InternationalDraughts::Description(size);
+        InternationalDraughts::Board* board = new InternationalDraughts::Board(desc, breakthrough_mode, killer_mode);
         GGPLib::StateMachineInterface* sm = new InternationalDraughts::SM(board, desc);
 
-        return (void *) sm;
+        return sm;
 
     } catch (...) {
         logExceptionWrapper(__PRETTY_FUNCTION__);
@@ -506,19 +510,14 @@ void* getSMDraughts_10x10() {
     return nullptr;
 }
 
+void* getSMDraughts_10x10() {
+    return (void *) getSMDraughts(10, false, false);
+}
+
 void* getSMDraughtsKiller_10x10() {
-    K273::l_info("in getSMDraughtsKiller_10x10()");
+    return (void *) getSMDraughts(10, false, true);
+}
 
-    try {
-        InternationalDraughts::Description* desc = new InternationalDraughts::Description(10);
-        InternationalDraughts::Board* board = new InternationalDraughts::Board(desc, false, true);
-        GGPLib::StateMachineInterface* sm = new InternationalDraughts::SM(board, desc);
-
-        return (void *) sm;
-
-    } catch (...) {
-        logExceptionWrapper(__PRETTY_FUNCTION__);
-    }
-
-    return nullptr;
+void* getSMDraughtsBreakthrough_10x10() {
+    return (void *) getSMDraughts(10, true, false);
 }

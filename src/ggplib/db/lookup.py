@@ -57,6 +57,25 @@ class TempGameInfo(object):
         return self.sm.dupe()
 
 
+class GameInfoBypass(GameInfo):
+    ''' bypass everything, special case statemachine that doesn't have any GDL '''
+    special_game = True
+
+    def __init__(self, game, sm, model):
+        self.game = game
+        self.sm = sm
+        self.model = model
+
+    def get_symbol_map(self):
+        pass
+
+    def lazy_load(self, the_game_store):
+        pass
+
+    def get_sm(self):
+        return self.sm.dupe()
+
+
 ###############################################################################
 
 class LookupFailed(Exception):
@@ -184,15 +203,47 @@ class GameDatabase:
 
 
 ###############################################################################
+
+def install_draughts(add_game):
+    ' load custom c++ statemachine for draughts '
+    from ggplib import interface
+    from ggplib.non_gdl_games import draughts_spec, draughts_model
+
+    desc10 = draughts_spec.BoardDesc(10)
+
+    cpp_statemachines = interface.CppStateMachines()
+    model = draughts_model.create_sm_model(desc10)
+
+    for game_variant in ["draughts_10x10",
+                         "draughts_killer_10x10",
+                         "draughts_bt_10x10"]:
+        sm_create_meth = getattr(cpp_statemachines, game_variant)
+        add_game(game_variant, sm_create_meth(), model)
+
+
+###############################################################################
 # The API:
 
 the_database = None
+
+
 def get_database(verbose=True):
     global the_database
+
+    def add_game_to_db(game, sm, model):
+        info = GameInfoBypass(game, sm, model)
+        the_database.game_mapping[game] = info
+
     if the_database is None:
         from ggplib.db.store import get_root
         the_database = GameDatabase(get_root())
         the_database.load(verbose=verbose)
+
+        try:
+            install_draughts(add_game_to_db)
+
+        except Exception as err:
+            log.error("Failed to install draughts: %s" % err)
 
     return the_database
 

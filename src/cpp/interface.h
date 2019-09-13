@@ -110,6 +110,7 @@ extern "C" {
     StateMachine* createCombinedStateMachineFromJSON(const char* msg, int size);
 
     StateMachine* getSMDraughts_10x10();
+    StateMachine* getSMDraughtsBreakthrough_10x10();
     StateMachine* getSMDraughtsKiller_10x10();
 
     // CFFI END INCLUDE

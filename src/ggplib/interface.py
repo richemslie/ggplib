@@ -302,6 +302,26 @@ def depth_charge(sm, seconds):
 
 ###############################################################################
 
+class CppStateMachines(object):
+
+    def _get_draughts(self, game_variant=""):
+        roles = ["white", "black"]
+        c_fn = getattr(lib, "getSMDraughts%s_10x10" % game_variant)
+        c_statemachine = c_fn()
+        return StateMachine(c_statemachine, roles)
+
+    def draughts_10x10(self):
+        return self._get_draughts()
+
+    def draughts_killer_10x10(self):
+        return self._get_draughts("Killer")
+
+    def draughts_bt_10x10(self):
+        return self._get_draughts("Breakthrough")
+
+
+###############################################################################
+
 def initialise_k273(log_level, log_name_base="logfile"):
     count = 1
     while True:
