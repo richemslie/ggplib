@@ -326,11 +326,16 @@ class SM:
 
         self.basestate = basestate
 
-    def clone(self):
+    def get_current_state(self):
+        return self.basestate
+
+    def clone(self, basestate=None):
+        if basestate is None:
+            basestate = self.basestate
         return SM(self.board_desc,
                   breakthrough_mode=self.breakthrough_mode,
                   killer_mode=self.killer_mode,
-                  basestate=self.basestate)
+                  basestate=basestate)
 
     def get(self, pos):
         indx = (pos - 1) * NUM_BASES_POS

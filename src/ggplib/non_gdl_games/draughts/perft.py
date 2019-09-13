@@ -4,13 +4,29 @@ import random
 
 from ggplib.non_gdl_games.draughts import spec
 
-
 class Perft:
     def __init__(self, board_desc, fen, killer_mode):
         self.board_desc = board_desc
         self.sm = spec.SM(board_desc, killer_mode=killer_mode)
         self.sm.parse_fen(fen)
         self.sm.update_legal_choices()
+
+    def gen_moves(self):
+        self.sm.update_legal_choices()
+
+        role = self.sm.whos_turn()
+        opp = spec.WHITE if role == spec.BLACK else spec.BLACK
+        joint_moves = []
+
+        assert len(self.sm.choices[opp]) == 1
+        noop = self.sm.choices[opp][0]
+        for l in self.sm.choices[role]:
+            if role == spec.WHITE:
+                joint_moves.append(spec.JointMove((l, noop)))
+            else:
+                joint_moves.append(spec.JointMove((noop, l)))
+
+        return joint_moves
 
     def go(self, depth, state_map=None):
         if depth == 0:
@@ -57,23 +73,6 @@ class Perft:
 
         return node_count
 
-    def gen_moves(self):
-        self.sm.update_legal_choices()
-
-        role = self.sm.whos_turn()
-        opp = spec.WHITE if role == spec.BLACK else spec.BLACK
-        joint_moves = []
-
-        assert len(self.sm.choices[opp]) == 1
-        noop = self.sm.choices[opp][0]
-        for l in self.sm.choices[role]:
-            if role == spec.WHITE:
-                joint_moves.append(spec.JointMove((l, noop)))
-            else:
-                joint_moves.append(spec.JointMove((noop, l)))
-
-        return joint_moves
-
 
 def perft(fen, max_depth, killer_mode=False):
     p = Perft(spec.BoardDesc(10), fen, killer_mode=killer_mode)
@@ -92,50 +91,6 @@ def perft(fen, max_depth, killer_mode=False):
     return results
 
 
-def play_random_move(sm):
-    choices = map(random.choice, sm.choices)
-    move = spec.JointMove(choices)
-
-    sm.play_move(move)
-    sm.update_legal_choices()
-
-
-def play_randomly(verbose=False, matches=10000):
-    depths = []
-    desc = spec.BoardDesc(10)
-
-    sm = spec.SM(desc)
-    sm.print_board()
-
-    s = time.time()
-
-    for i in range(matches):
-        sm = spec.SM(desc)
-        sm.update_legal_choices()
-
-        try:
-            depth = 0
-            while not sm.is_terminal():
-                play_random_move(sm)
-                if verbose:
-                    print "Depth", depth
-                    sm.print_board()
-                depth += 1
-
-        except Exception:
-            sm.print_board()
-            raise
-
-        depths.append(depth)
-
-    total_time = time.time() - s
-    total_depth = sum(depths)
-
-    print "average game depth %.2f" % (total_depth / float(matches))
-    print "total_time %.2f, total state changes %d" % (total_time, total_depth)
-    print "playouts p/s %.2f, state changes p/s %.2f" % (matches / total_time, total_depth / total_time)
-
-
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "-p":
         import cProfile
@@ -152,8 +107,8 @@ if __name__ == "__main__":
         # fen = "W:W6,7,8,9,10:B41,42,43,44,45."
 
         # inital state:
-        fen = "W:W31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50:" \
-              "B1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20"
+        #fen = "W:W31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50:" \
+        #     "B1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20"
 
         # 14 captures crazyiness
         # fen = "B:W6,9,10,11,20,21,22,23,30,K31,33,37,41,42,43,44,46:BK17,K24"
@@ -161,4 +116,5 @@ if __name__ == "__main__":
         # end game
         fen = "W:W25,27,28,30,32,33,34,35,37,38:B12,13,14,16,18,19,21,23,24,26"
 
-        perft(fen, 12)
+        depth = int(sys.argv[1])
+        perft(fen, depth)

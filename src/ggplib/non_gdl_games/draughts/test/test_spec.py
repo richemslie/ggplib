@@ -465,5 +465,3 @@ def test_maximal_jump2():
     sm.print_board()
     check_maximal_count(sm, 37, 3, [26])
     sm.print_board()
-
-
