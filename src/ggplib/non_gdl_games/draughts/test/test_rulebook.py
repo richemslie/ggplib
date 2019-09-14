@@ -3,19 +3,20 @@ Rulebook unit tests - suggested by rhalbersma, and adapted from:
         https://github.com/rhalbersma/dctl/blob/master/test/src/core/model/international.cpp
 '''
 
-from ggplib.non_gdl_games.draughts import spec
-from ggplib.non_gdl_games.draughts.test import ggputil
+from ggplib.non_gdl_games.draughts import desc
 
 
-VERBOSE = False
+VERBOSE = True
+
 
 def setup():
     from ggplib.util.init import setup_once
     setup_once(__file__)
 
 
-class RuleBookRunner(object):
+class RuleBookRunnerCpp(object):
     def __init__(self, doc, fen, expect_legals):
+        self.board_desc = desc.BoardDesc(10)
         self.fen = fen
         self.expect_legals = expect_legals
 
@@ -27,82 +28,11 @@ class RuleBookRunner(object):
         self.create_sm()
 
     def create_sm(self):
-        desc = spec.BoardDesc(10)
-        self.sm = spec.SM(desc)
-        self.sm.parse_fen(self.fen)
+        self.sm = desc.create_board(self.board_desc, self.fen)
 
     def print_board(self, sm):
         if VERBOSE:
-            sm.print_board()
-
-    def piece_count(self, sm, role):
-        return len(list(sm.all_for_role(role)))
-
-    def gen_moves(self, sm):
-        sm.update_legal_choices()
-
-        role = sm.whos_turn()
-        opp = spec.WHITE if role == spec.BLACK else spec.BLACK
-        joint_moves = []
-
-        assert len(sm.choices[opp]) == 1
-        noop = sm.choices[opp][0]
-        for l in sm.choices[role]:
-            if role == spec.WHITE:
-                joint_moves.append(spec.JointMove((l, noop)))
-            else:
-                joint_moves.append(spec.JointMove((noop, l)))
-
-        return joint_moves
-
-    def play(self, basestate):
-        sm = self.sm.clone(basestate)
-        role = sm.whos_turn()
-        opponent = spec.WHITE if role == spec.BLACK else spec.BLACK
-
-        # follow all paths
-        for move in self.gen_moves(sm):
-            mapping = sm.board_desc.reverse_legal_mapping[role][move[role]]
-            what, from_pos, to_pos, _ = mapping
-            print "follow path:"
-            print sm.board_desc.all_legals[move[role]]
-            print "%s %s-%s" % (spec.piece_str(what), from_pos, to_pos)
-
-            sm_next = sm.clone()
-            sm_next.play_move(move)
-            captured = self.piece_count(sm_next, opponent) < self.piece_count(sm, opponent)
-            self.print_board(sm_next)
-
-            if sm_next.check_interim_status():
-                for _, to_pos, _ in self.play(sm_next.get_current_state()):
-                    yield from_pos, to_pos, True
-            else:
-                yield from_pos, to_pos, captured
-
-    def run(self):
-        self.print_board(self.sm)
-
-        moves = set()
-
-        for from_pos, to_pos, captures in self.play(self.sm.get_current_state()):
-            if captures:
-                move = "%02dx%02d" % (from_pos, to_pos)
-            else:
-                move = "%02d-%02d" % (from_pos, to_pos)
-            moves.add(move)
-
-        assert set(moves) == set(self.expect_legals)
-
-
-###############################################################################
-
-class RuleBookRunnerCpp(RuleBookRunner):
-    def create_sm(self):
-        self.sm = ggputil.create_board(self.fen)
-
-    def print_board(self, sm):
-        if VERBOSE:
-            ggputil.print_board_sm(sm)
+            desc.print_board_sm(self.board_desc, sm)
 
     def gen_moves(self, sm):
         ls0, ls1 = sm.get_legal_state(0), sm.get_legal_state(1)
@@ -121,42 +51,47 @@ class RuleBookRunnerCpp(RuleBookRunner):
 
     # follow both paths
     def play(self, basestate):
-        role, opponent = ggputil.get_whos_turn(basestate)
+        role = desc.whos_turn(self.board_desc, basestate)
+        opponent = desc.BLACK if role == desc.WHITE else desc.WHITE
         for move in self.gen_moves(self.sm):
-            mapping = ggputil.legal_mapping(role, move.get(role))
+            mapping = desc.legal_mapping(self.board_desc, role, move.get(role))
             what, from_pos, to_pos, _ = mapping
-            print "%s %s-%s" % (spec.piece_str(what), from_pos, to_pos)
+            print "%s %s-%s" % (desc.piece_str(what), from_pos, to_pos)
 
             self.sm.update_bases(basestate)
             base_state_next = self.sm.new_base_state()
             self.sm.next_state(move, base_state_next)
             self.sm.update_bases(base_state_next)
 
-            captured = ggputil.piece_count(base_state_next, opponent) < ggputil.piece_count(basestate, opponent)
+            captured = (desc.piece_count(self.board_desc, base_state_next, opponent) <
+                        desc.piece_count(self.board_desc, basestate, opponent))
             self.print_board(self.sm)
 
-            if ggputil.check_interim_status(base_state_next):
+            if desc.check_interim_status(self.board_desc, base_state_next):
                 for _, to_pos, _ in self.play(base_state_next):
                     yield from_pos, to_pos, True
             else:
                 yield from_pos, to_pos, captured
 
+    def run(self):
+        self.print_board(self.sm)
+
+        moves = set()
+
+        for from_pos, to_pos, captures in self.play(self.sm.get_current_state()):
+            if captures:
+                move = "%02dx%02d" % (from_pos, to_pos)
+            else:
+                move = "%02d-%02d" % (from_pos, to_pos)
+            moves.add(move)
+
+        assert set(moves) == set(self.expect_legals)
+
 ###############################################################################
 
 
-def rulebook_test_spec(doc, fen, expect_legals):
-    RuleBookRunner(doc, fen, expect_legals).run()
-
-
-def rulebook_test_cpp_sm(doc, fen, expect_legals):
+def run_test(doc, fen, expect_legals):
     RuleBookRunnerCpp(doc, fen, expect_legals).run()
-
-
-def simple(test_fn):
-    doc = "white pawn move direction / art 3.4"
-    fen = "W:W28"
-    legals = ["28-22", "28-23"]
-    test_fn(doc, fen, legals)
 
 
 def french_tutorial(test_fn):
@@ -282,12 +217,5 @@ def italian_rules(test_fn):
 
 
 def test_spec():
-    simple(rulebook_test_spec)
-    french_tutorial(rulebook_test_spec)
-    italian_rules(rulebook_test_spec)
-
-
-def test_cpp():
-    simple(rulebook_test_cpp_sm)
-    french_tutorial(rulebook_test_cpp_sm)
-    italian_rules(rulebook_test_cpp_sm)
+    french_tutorial(run_test)
+    italian_rules(run_test)

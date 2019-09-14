@@ -1,4 +1,4 @@
-from ggplib.non_gdl_games.draughts import spec
+from ggplib.non_gdl_games.draughts import desc
 
 
 incl_file_header = '''
@@ -31,7 +31,7 @@ def bool_value_str(v):
 
 class GenCodeFn:
     def __init__(self, board_size):
-        self.board_desc = spec.BoardDesc(board_size)
+        self.board_desc = desc.BoardDesc(board_size)
 
         # find the start of role indices
         def legal_index_start(role_str):
@@ -59,7 +59,7 @@ class GenCodeFn:
         diagonals = all_directions[direction]
 
         for i, to_pos in enumerate(diagonals.steps):
-            if what == spec.MAN and i == 2:
+            if what == desc.MAN and i == 2:
                 break
 
             try:
@@ -79,11 +79,11 @@ class GenCodeFn:
                            Direction direction) :
         """
 
-        legal_index_start = self.legal_white_index if role == spec.WHITE else self.legal_black_index
+        legal_index_start = self.legal_white_index if role == desc.WHITE else self.legal_black_index
 
         map_variable = "reverse_legal_lookup_"
 
-        if role == spec.WHITE:
+        if role == desc.WHITE:
             role = "Role::White"
             map_variable += "white"
 
@@ -91,7 +91,7 @@ class GenCodeFn:
             role = "Role::Black"
             map_variable += "black"
 
-        if what == spec.MAN:
+        if what == desc.MAN:
             what = "Piece::Man"
         else:
             what = "Piece::King"
@@ -108,13 +108,13 @@ class GenCodeFn:
                 what,
                 from_pos,
                 to_pos,
-                spec.direction_str(direction))
+                desc.direction_str(direction))
 
     def generate_ddi(self, role, direction, ddi):
-        legal_index_start = self.legal_white_index if role == spec.WHITE else self.legal_black_index
+        legal_index_start = self.legal_white_index if role == desc.WHITE else self.legal_black_index
 
         yield "DiagonalDirectionInfo* ddi = new DiagonalDirectionInfo;"
-        yield "ddi->direction = %s;" % spec.direction_str(direction)
+        yield "ddi->direction = %s;" % desc.direction_str(direction)
         yield "ddi->diagonals.reserve(%d);" % len(ddi)
 
         for to_pos, legal in ddi:
@@ -140,10 +140,10 @@ class GenCodeFn:
             value = self.board_desc.promotion_line(role, pos)
             value_strs.append(bool_value_str(value))
 
-        yield "this->%s_promotion_line = {%s};" % (spec.role_str(role), ", ".join(value_strs))
+        yield "this->%s_promotion_line = {%s};" % (desc.role_str(role), ", ".join(value_strs))
 
     def gen_legal_moves(self, role):
-        role_str = spec.role_str(role)
+        role_str = desc.role_str(role)
 
         legal_strs = []
         for legal in self.board_desc.all_legals:
@@ -181,35 +181,35 @@ class GenCodeFn:
         yield ""
         yield ""
 
-        for role in (spec.WHITE, spec.BLACK):
+        for role in (desc.WHITE, desc.BLACK):
 
             yield ""
-            yield "// generating promotion line for %s" % (spec.role_str(role))
+            yield "// generating promotion line for %s" % (desc.role_str(role))
             for l in self.gen_promotion_lines(role):
                 yield l
 
             yield ""
 
             yield ""
-            yield "// generating moves for %s" % (spec.role_str(role))
+            yield "// generating moves for %s" % (desc.role_str(role))
             for l in self.gen_legal_moves(role):
                 yield l
 
-            for what in (spec.MAN, spec.KING):
+            for what in (desc.MAN, desc.KING):
                 index = (role * 2 + what) * positions
 
                 for ii in range(positions):
                     pos_index = index + ii
                     pos = ii + 1
 
-                    for direction in spec.Diagonals.all_directions:
+                    for direction in desc.Diagonals.all_directions:
                         ddi = list(self.all_diagonal_data(role, what, pos, direction))
 
                         if ddi:
-                            yield "// generating for %s %s %s %s" % (spec.role_str(role),
-                                                                     spec.piece_str(what),
+                            yield "// generating for %s %s %s %s" % (desc.role_str(role),
+                                                                     desc.piece_str(what),
                                                                      pos,
-                                                                     spec.direction_str(direction))
+                                                                     desc.direction_str(direction))
                             yield "{"
                             for l in self.generate_ddi(role, direction, ddi):
                                 yield indent + l
@@ -248,6 +248,7 @@ def create_cpp_file(filename, gens):
                     print >>init_file, ""
 
             newline(init_file, 2)
+            sz = gen.board_desc.size
             print >>init_file, "} // end of BoardDescription::initBoard_%sx%s" % (sz, sz)
 
         print >>init_file, "// end of file"

@@ -2,9 +2,15 @@ import time
 import random
 from pprint import pprint
 
+import py
+
 from ggplib.db import lookup
 
-from ggplib.non_gdl_games.draughts import spec
+from ggplib.non_gdl_games.draughts import desc
+
+
+# unskip to run all tests, but it will take ages.
+skip_slow = True
 
 
 def setup():
@@ -13,6 +19,8 @@ def setup():
 
 
 def test_create_id_10():
+    board_desc = desc.BoardDesc(10)
+
     info = lookup.by_name("draughts_bt_10x10")
 
     # will dupe / and reset
@@ -21,14 +29,9 @@ def test_create_id_10():
     joint_move = sm.get_joint_move()
     base_state = sm.new_base_state()
 
-    def print_board(bs):
-        pysm = spec.SM(spec.BoardDesc(10),
-                       basestate=bs.to_list())
-        pysm.print_board()
-
     base_state.assign(sm.get_current_state())
 
-    print_board(base_state)
+    desc.print_board(board_desc, base_state)
     pprint(info.model.basestate_to_str(base_state))
 
     while not sm.is_terminal():
@@ -55,7 +58,7 @@ def test_create_id_10():
         # update the state machine to new state
         sm.update_bases(base_state)
 
-        print_board(base_state)
+        desc.print_board(board_desc, base_state)
 
 
 def test_speed():
@@ -122,6 +125,9 @@ def create_player():
 
 
 def test_play():
+    if skip_slow:
+        py.test.skip("too slow")
+
     from ggplib.player.gamemaster import GameMaster
 
     game_info = lookup.by_name("draughts_killer_10x10")
@@ -136,25 +142,6 @@ def test_play():
 
     # check scores/depth make some sense
     print gm.scores
-
-
-def create_board(fen):
-    desc = spec.BoardDesc(10)
-    spec_sm = spec.SM(desc)
-
-    spec_sm.parse_fen(fen)
-
-    info = lookup.by_name("draughts_10x10")
-
-    # will dupe / and reset
-    sm = info.get_sm()
-
-    base_state = sm.new_base_state()
-    for i, v in enumerate(spec_sm.basestate):
-        base_state.set(i, v)
-
-    sm.update_bases(base_state)
-    return sm
 
 
 def dump_legals(sm):
@@ -188,19 +175,17 @@ def random_move(sm):
 def test_captures_king():
     fen = "W:WK48:B31,42,21,22,19,10,39,29"
 
-    sm = create_board(fen)
+    board_desc = desc.BoardDesc(10)
+    sm = desc.create_board(board_desc, fen)
 
     base_state = sm.new_base_state()
 
-    def print_board(bs):
-        pysm = spec.SM(spec.BoardDesc(10),
-                       basestate=bs.to_list())
-        pysm.print_board()
+    desc.print_board(board_desc, base_state)
 
     base_state.assign(sm.get_current_state())
 
     for i in range(7):
-        print_board(base_state)
+        desc.print_board(board_desc, base_state)
         dump_legals(sm)
 
         if sm.is_terminal():
@@ -214,19 +199,15 @@ def test_captures_king():
 def test_captures_king2():
     fen = "W:WK48:B31,42,21,22,19,10,39,29"
 
-    sm = create_board(fen)
+    board_desc = desc.BoardDesc(10)
+    sm = desc.create_board(board_desc, fen)
 
     base_state = sm.new_base_state()
-
-    def print_board(bs):
-        pysm = spec.SM(spec.BoardDesc(10),
-                       basestate=bs.to_list())
-        pysm.print_board()
 
     base_state.assign(sm.get_current_state())
 
     for i in range(7):
-        print_board(base_state)
+        desc.print_board(board_desc, base_state)
         dump_legals(sm)
 
         if sm.is_terminal():
