@@ -6,14 +6,14 @@ import py
 from ggplib.non_gdl_games.draughts import desc
 
 # unskip to run all tests, but it will take ages.
-skip_slow = False
+skip_slow = True
 
 
 class Perft(object):
     def __init__(self, fen, killer_mode):
         self.board_desc = desc.BoardDesc(10)
 
-        self.sm = desc.create_board(self.board_desc, fen, killer_mode)
+        self.sm = desc.create_sm(self.board_desc, fen, killer_mode)
         self.start_state = self.sm.get_current_state()
         self.next_basestate = self.sm.new_base_state()
 
@@ -62,7 +62,7 @@ class Perft(object):
 
                 continue
 
-            if desc.check_interim_status(self.board_desc, self.next_basestate):
+            if self.board_desc.check_interim_status(self.next_basestate):
                 # need expand paths and eliminate dupe cycles
                 if state_map is None:
                     state_map = set()
@@ -79,7 +79,7 @@ def perft(fen, max_depth, killer_mode=False, verbose=True):
 
     if verbose:
         print 'Running Perft for FEN', fen
-        desc.print_board_sm(p.board_desc, p.sm)
+        p.board_desc.print_board_sm(p.sm)
 
     results = []
     for depth in range(1, max_depth + 1):

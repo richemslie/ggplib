@@ -25,14 +25,12 @@ class RuleBookRunnerCpp(object):
         print doc
         print (len(doc) + 1) * "="
         print
-        self.create_sm()
 
-    def create_sm(self):
-        self.sm = desc.create_board(self.board_desc, self.fen)
+        self.sm = desc.create_sm(self.board_desc, self.fen)
 
     def print_board(self, sm):
         if VERBOSE:
-            desc.print_board_sm(self.board_desc, sm)
+            self.board_desc.print_board_sm(sm)
 
     def gen_moves(self, sm):
         ls0, ls1 = sm.get_legal_state(0), sm.get_legal_state(1)
@@ -51,10 +49,10 @@ class RuleBookRunnerCpp(object):
 
     # follow both paths
     def play(self, basestate):
-        role = desc.whos_turn(self.board_desc, basestate)
+        role = self.board_desc.whos_turn(basestate)
         opponent = desc.BLACK if role == desc.WHITE else desc.WHITE
         for move in self.gen_moves(self.sm):
-            mapping = desc.legal_mapping(self.board_desc, role, move.get(role))
+            mapping = self.board_desc.get_legal_mapping(role, move.get(role))
             what, from_pos, to_pos, _ = mapping
             print "%s %s-%s" % (desc.piece_str(what), from_pos, to_pos)
 
@@ -63,11 +61,11 @@ class RuleBookRunnerCpp(object):
             self.sm.next_state(move, base_state_next)
             self.sm.update_bases(base_state_next)
 
-            captured = (desc.piece_count(self.board_desc, base_state_next, opponent) <
-                        desc.piece_count(self.board_desc, basestate, opponent))
+            captured = (self.board_desc.piece_count(base_state_next, opponent) <
+                        self.board_desc.piece_count(basestate, opponent))
             self.print_board(self.sm)
 
-            if desc.check_interim_status(self.board_desc, base_state_next):
+            if self.board_desc.check_interim_status(base_state_next):
                 for _, to_pos, _ in self.play(base_state_next):
                     yield from_pos, to_pos, True
             else:

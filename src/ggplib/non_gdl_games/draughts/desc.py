@@ -27,7 +27,7 @@ NE, NW, SE, SW = 0, 1, 2, 3
 
 
 # readable bases lookup
-# this is so we can array of chars in c (easiest for now)
+# padded so we can have an array of chars in C
 BASE_WM = 0
 BASE_WK = 1
 BASE_BM = 2
@@ -59,7 +59,7 @@ def direction_str(d):
     elif d == SW:
         return "SW"
 
-    assert False, "WTF"
+    assert False, "Invalid direction"
 
 
 class Diagonals:
@@ -78,6 +78,14 @@ class Diagonals:
                                       direction_str(self.direction),
                                       str(self.steps))
         return s
+
+
+def bs_get(basestate, index):
+    ' for testing '
+    try:
+        return basestate.get(index)
+    except AttributeError:
+        return basestate[index]
 
 
 class BoardDesc:
@@ -143,7 +151,7 @@ class BoardDesc:
     def mapping_from(self, pos):
         assert pos > 0 and pos <= self.num_positions
 
-        # position maps from top right hand square leftward, downwards
+        # convention is to have position map from top right hand square leftward, downwards
         row, col = (pos - 1) / self.squares_per_row, pos % self.squares_per_row
         row = self.size - 1 - row
         s = 1 if row % 2 == 1 else 0
@@ -270,9 +278,6 @@ class BoardDesc:
                     for next_pos in diagonals[d].steps:
                         legal_add(role, KING, pos, next_pos, d)
 
-    def get_gdl_base(self, index):
-        return self.bases[index]
-
     def get_initial_state(self):
         basestate = [0 for i in range(len(self.bases))]
 
@@ -306,26 +311,15 @@ class BoardDesc:
         def bs_set_helper(pos, role, what):
             indx = (pos - 1) * NUM_BASES_POS
 
+            basestate[indx:indx + NUM_BASES_POS_USED] = [0 for _ in range(NUM_BASES_POS_USED)]
+
+            if what == KING:
+                indx += 1
+
             if role == BLACK:
-                basestate[indx + BASE_WM] = 0
-                basestate[indx + BASE_WK] = 0
+                indx += 2
 
-                if what == KING:
-                    basestate[indx + BASE_BM] = 0
-                    basestate[indx + BASE_BK] = 1
-                else:
-                    basestate[indx + BASE_BM] = 1
-                    basestate[indx + BASE_BK] = 0
-            else:
-                if what == KING:
-                    basestate[indx + BASE_WM] = 0
-                    basestate[indx + BASE_WK] = 1
-                else:
-                    basestate[indx + BASE_WM] = 1
-                    basestate[indx + BASE_WK] = 0
-
-                basestate[indx + BASE_BM] = 0
-                basestate[indx + BASE_BK] = 0
+            basestate[indx] = 1
 
         # remove all spaces
         fen = fen.replace(" ", "")
@@ -387,118 +381,130 @@ class BoardDesc:
 
         return False
 
+    # helpers for testing
+    def check_interim_status(self, basestate):
+        return bs_get(basestate, self.interim_status_indx)
 
-# helpers for testing
+    def whos_turn(self, basestate):
+        indx = self.meta_index
+        if bs_get(basestate, indx):
+            return WHITE
+        else:
+            assert bs_get(basestate, indx + 1)
+            return BLACK
 
-def bs_get(basestate, index):
-    try:
-        return basestate.get(index)
-    except AttributeError:
-        return basestate[index]
+    def piece_count(self, basestate, role):
+        count = 0
 
-
-def check_interim_status(board_desc, basestate):
-    return bs_get(basestate, board_desc.interim_status_indx)
-
-
-def whos_turn(board_desc, basestate):
-    indx = board_desc.meta_index
-    if bs_get(basestate, indx):
-        return WHITE
-    else:
-        assert bs_get(basestate, indx + 1)
-        return BLACK
-
-
-def print_board(board_desc, basestate):
-    """
-  1 -  5      ⛂   ⛂   ⛂   ⛂   ⛂
-  6 - 10    ⛂   ⛂   ⛂   ⛂   ⛂
- 11 - 15      ⛂   ⛂   ⛂   ⛂   ⛂
- 16 - 20    ⛂   ⛂   ⛂   ⛂   ⛂
- 21 - 25      ·   ·   ·   ·   ·
- 26 - 30    ·   ·   ·   ·   ·
- 31 - 35      ⛀   ⛀   ⛀   ⛀   ⛀
- 36 - 40    ⛀   ⛀   ⛀   ⛀   ⛀
- 41 - 45      ⛀   ⛀   ⛀   ⛀   ⛀
- 46 - 50    ⛀   ⛀   ⛀   ⛀   ⛀
-        """
-
-    if not isinstance(basestate, list):
-        basestate = basestate.to_list()
-
-    def getAtPos(pos):
-        indx = (pos - 1) * NUM_BASES_POS
-
-        wm, wk, bm, bk, interim_pos, captured = basestate[indx:indx + NUM_BASES_POS_USED]
-
-        role = None
-        if wm or wk:
-            role = WHITE
-            what = MAN if wm else KING
-
-        if bm or bk:
-            role = BLACK
-            what = MAN if bm else KING
-
-        if role is None:
-            return None, None, None, None
-
-        return role, what, interim_pos, captured
-
-    num_spaces = 2
-    white_pieces = {MAN : '⛂', KING : '⛃'}
-    black_pieces = {MAN : '⛀', KING : '⛁'}
-
-    print("")
-
-    sqrs = board_desc.squares_per_row
-    for start_pos in range(1, board_desc.num_positions + 1, sqrs):
-
-        # start:
-        numbering = ' %2d - %2d ' % (start_pos, start_pos + sqrs - 1)
-
-        # spaces before row of pieces
-        spaces = ' ' * num_spaces
-
-        row = []
-        for i in range(sqrs):
-            pos = start_pos + i
-            role, what, interim_pos, captured = getAtPos(pos)
-            if role is None:
-                piece_str = "."
-
+        for ii in range(self.num_positions):
+            indx = ii * NUM_BASES_POS
+            if role == WHITE:
+                if bs_get(basestate, indx + BASE_WM) or bs_get(basestate, indx + BASE_WK):
+                    count += 1
             else:
-                if role == WHITE:
-                    piece_str = white_pieces[what]
+                if bs_get(basestate, indx + BASE_BM) or bs_get(basestate, indx + BASE_BK):
+                    count += 1
+        return count
+
+    def get_legal_mapping(self, role, legal):
+        # XXX ugly hack using gencode - fix to use board_desc only
+        # ZZZ legal_black_index/legal_white_index - should be set in create_legals() in board_desc
+        from ggplib.non_gdl_games.draughts import gencode
+        legal_black_index = gencode.GenCodeFn(10).legal_black_index
+
+        if role == WHITE:
+            return self.reverse_legal_mapping[role][legal]
+        else:
+            return self.reverse_legal_mapping[role][legal + legal_black_index]
+
+    def print_board(self, basestate):
+        """
+      1 -  5      ⛂   ⛂   ⛂   ⛂   ⛂
+      6 - 10    ⛂   ⛂   ⛂   ⛂   ⛂
+     11 - 15      ⛂   ⛂   ⛂   ⛂   ⛂
+     16 - 20    ⛂   ⛂   ⛂   ⛂   ⛂
+     21 - 25      ·   ·   ·   ·   ·
+     26 - 30    ·   ·   ·   ·   ·
+     31 - 35      ⛀   ⛀   ⛀   ⛀   ⛀
+     36 - 40    ⛀   ⛀   ⛀   ⛀   ⛀
+     41 - 45      ⛀   ⛀   ⛀   ⛀   ⛀
+     46 - 50    ⛀   ⛀   ⛀   ⛀   ⛀
+            """
+
+        if not isinstance(basestate, list):
+            basestate = basestate.to_list()
+
+        def getAtPos(pos):
+            indx = (pos - 1) * NUM_BASES_POS
+
+            wm, wk, bm, bk, interim_pos, captured = basestate[indx:indx + NUM_BASES_POS_USED]
+
+            role = None
+            if wm or wk:
+                role = WHITE
+                what = MAN if wm else KING
+
+            if bm or bk:
+                role = BLACK
+                what = MAN if bm else KING
+
+            if role is None:
+                return None, None, None, None
+
+            return role, what, interim_pos, captured
+
+        num_spaces = 2
+        white_pieces = {MAN : '⛂', KING : '⛃'}
+        black_pieces = {MAN : '⛀', KING : '⛁'}
+
+        print("")
+
+        sqrs = self.squares_per_row
+        for start_pos in range(1, self.num_positions + 1, sqrs):
+
+            # start:
+            numbering = ' %2d - %2d ' % (start_pos, start_pos + sqrs - 1)
+
+            # spaces before row of pieces
+            spaces = ' ' * num_spaces
+
+            row = []
+            for i in range(sqrs):
+                pos = start_pos + i
+                role, what, interim_pos, captured = getAtPos(pos)
+                if role is None:
+                    piece_str = "."
+
                 else:
-                    piece_str = black_pieces[what]
+                    if role == WHITE:
+                        piece_str = white_pieces[what]
+                    else:
+                        piece_str = black_pieces[what]
 
-                if interim_pos:
-                    piece_str = colorama.Fore.GREEN + piece_str + colorama.Style.RESET_ALL
+                    if interim_pos:
+                        piece_str = colorama.Fore.GREEN + piece_str + colorama.Style.RESET_ALL
 
-                elif captured:
-                    piece_str = colorama.Fore.RED + piece_str + colorama.Style.RESET_ALL
+                    elif captured:
+                        piece_str = colorama.Fore.RED + piece_str + colorama.Style.RESET_ALL
 
-            row.append(piece_str)
+                row.append(piece_str)
 
-        pieces = '   '.join(row)
+            pieces = '   '.join(row)
 
-        print(numbering + '   ' + spaces + pieces)
+            print(numbering + '   ' + spaces + pieces)
 
-        # alternate spaces between rows
-        num_spaces = 0 if num_spaces > 0 else 2
+            # alternate spaces between rows
+            num_spaces = 0 if num_spaces > 0 else 2
 
-    print("")
+        print("")
 
-
-def print_board_sm(board_desc, sm):
-    print_board(board_desc, basestate=sm.get_current_state().to_list())
+    def print_board_sm(self, sm):
+        self.print_board(basestate=sm.get_current_state().to_list())
 
 
 ###############################################################################
 
-def create_board(board_desc, fen, killer_mode=False):
+def create_sm(board_desc, fen, killer_mode=False):
     basestate_as_list = board_desc.state_from_fen(fen)
 
     if killer_mode:
@@ -516,28 +522,3 @@ def create_board(board_desc, fen, killer_mode=False):
 
     sm.update_bases(basestate)
     return sm
-
-
-def piece_count(board_desc, basestate, role):
-    count = 0
-
-    for ii in range(board_desc.num_positions):
-        indx = ii * NUM_BASES_POS
-        if role == WHITE:
-            if bs_get(basestate, indx + BASE_WM) or bs_get(basestate, indx + BASE_WK):
-                count += 1
-        else:
-            if bs_get(basestate, indx + BASE_BM) or bs_get(basestate, indx + BASE_BK):
-                count += 1
-    return count
-
-
-def legal_mapping(board_desc, role, legal):
-    # XXX ugly hack using gencode - fix to use board_desc only
-    from ggplib.non_gdl_games.draughts import gencode
-    legal_black_index = gencode.GenCodeFn(10).legal_black_index
-
-    if role == WHITE:
-        return board_desc.reverse_legal_mapping[role][legal]
-    else:
-        return board_desc.reverse_legal_mapping[role][legal + legal_black_index]

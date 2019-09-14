@@ -31,7 +31,7 @@ def test_create_id_10():
 
     base_state.assign(sm.get_current_state())
 
-    desc.print_board(board_desc, base_state)
+    board_desc.print_board(base_state)
     pprint(info.model.basestate_to_str(base_state))
 
     while not sm.is_terminal():
@@ -58,7 +58,7 @@ def test_create_id_10():
         # update the state machine to new state
         sm.update_bases(base_state)
 
-        desc.print_board(board_desc, base_state)
+        board_desc.print_board(base_state)
 
 
 def test_speed():
@@ -176,16 +176,16 @@ def test_captures_king():
     fen = "W:WK48:B31,42,21,22,19,10,39,29"
 
     board_desc = desc.BoardDesc(10)
-    sm = desc.create_board(board_desc, fen)
+    sm = desc.create_sm(board_desc, fen)
 
     base_state = sm.new_base_state()
 
-    desc.print_board(board_desc, base_state)
+    board_desc.print_board(base_state)
 
     base_state.assign(sm.get_current_state())
 
     for i in range(7):
-        desc.print_board(board_desc, base_state)
+        board_desc.print_board(base_state)
         dump_legals(sm)
 
         if sm.is_terminal():
@@ -200,14 +200,14 @@ def test_captures_king2():
     fen = "W:WK48:B31,42,21,22,19,10,39,29"
 
     board_desc = desc.BoardDesc(10)
-    sm = desc.create_board(board_desc, fen)
+    sm = desc.create_sm(board_desc, fen)
 
     base_state = sm.new_base_state()
 
     base_state.assign(sm.get_current_state())
 
     for i in range(7):
-        desc.print_board(board_desc, base_state)
+        board_desc.print_board(base_state)
         dump_legals(sm)
 
         if sm.is_terminal():
