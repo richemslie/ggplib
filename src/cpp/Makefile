@@ -12,6 +12,9 @@ SRCS += example_players/randomplayer.cpp example_players/legalplayer.cpp example
 DRAUGHTS = statemachine/external/draughts
 SRCS += $(DRAUGHTS)/board.cpp $(DRAUGHTS)/desc.cpp $(DRAUGHTS)/init.cpp $(DRAUGHTS)/sm.cpp
 
+BADUK = statemachine/external/baduk
+SRCS += $(BADUK)/board.cpp $(BADUK)/desc.cpp $(BADUK)/init.cpp $(BADUK)/sm.cpp
+
 SRCS += perf_test.cpp interface.cpp
 
 OBJS := $(patsubst %.cpp, %.o, $(SRCS))

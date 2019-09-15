@@ -2,17 +2,18 @@
 
 // local includes
 #include "desc.h"
-#include "common.h"
 
 // std includes
 #include <string>
 #include <vector>
 #include <cstdint>
 
+// k273 include
+#include <k273/util.h>
+
 // ggplib includes
 #include <statemachine/basestate.h>
 #include <statemachine/jointmove.h>
-
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -68,7 +69,7 @@ namespace InternationalDraughts {
 
         void set(Role role, Piece what) {
             constexpr static uint8_t lookup[2][2] = {{WHITE_MAN, WHITE_KING}, {BLACK_MAN, BLACK_KING}};
-            this->data = lookup[to_underlying(role)][to_underlying(what)];
+            this->data = lookup[K273::to_underlying(role)][K273::to_underlying(what)];
         }
 
         bool isEmpty() const {
@@ -77,12 +78,12 @@ namespace InternationalDraughts {
 
         bool isOccupied(Role role) const {
             constexpr static uint8_t lookup[2] = {WHITE_MAN + WHITE_KING, BLACK_MAN + BLACK_KING};
-            uint8_t mask = lookup[to_underlying(role)];
+            uint8_t mask = lookup[K273::to_underlying(role)];
             return mask & this->data;
         }
 
         Piece what() const {
-            return to_enum <Piece> ((this->data & (WHITE_KING + BLACK_KING)) > 0);
+            return K273::to_enum <Piece> ((this->data & (WHITE_KING + BLACK_KING)) > 0);
         }
 
         bool isKing() const {
@@ -99,7 +100,7 @@ namespace InternationalDraughts {
 
         bool isOpponentAndNotCaptured(Role role) const {
             constexpr static uint8_t opp_lookup[2] = {BLACK_MAN + BLACK_KING, WHITE_MAN + WHITE_KING};
-            uint8_t mask = opp_lookup[to_underlying(role)];
+            uint8_t mask = opp_lookup[K273::to_underlying(role)];
             return (this->data & mask) && (this->data & CAPTURED) == 0;
         }
 
@@ -239,6 +240,22 @@ namespace InternationalDraughts {
             return this->num_positions;
         }
 
+        int getNumberBases() const {
+            return this->num_bases;
+        }
+
+        int getStepCounterIncr() const {
+            return this->step_counter_square_incr;
+        }
+
+        int getMetaSquareIncr() const {
+            return this->meta_square_incr;
+        }
+
+        int getNRuleCount() const {
+            return this->n_rule_count;
+        }
+
         bool isPromotionLine(Role role, Position pos) const;
 
         const VectorDDI& getDiagonalsForPosition(Role role, Position pos, Piece what) const;
@@ -259,11 +276,16 @@ namespace InternationalDraughts {
         int legalsSize(Role role) const;
 
     private:
-
         const bool board_size;
 
         // all below are populated by generated code:
         int num_positions;
+        int num_bases;
+
+        int step_counter_square_incr;
+        int meta_square_incr;
+
+        int n_rule_count;
 
         // for each role/pos/what combination
         // indexed by (role * 2 + what) * num_positions + pos

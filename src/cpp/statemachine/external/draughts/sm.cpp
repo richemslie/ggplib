@@ -58,7 +58,7 @@ void SM::updateBases(const GGPLib::BaseState* bs) {
 }
 
 GGPLib::BaseState* SM::newBaseState() const {
-    int num_bases = 8 * (this->board_desc->getNumPositions()) + 3;
+    int num_bases = this->board_desc->getNumberBases();
 
     void* mem = ::malloc(GGPLib::BaseState::mallocSize(num_bases));
     GGPLib::BaseState* bs = static_cast <GGPLib::BaseState*>(mem);

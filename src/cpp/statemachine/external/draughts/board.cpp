@@ -6,6 +6,7 @@
 #include <k273/strutils.h>
 #include <k273/logging.h>
 #include <k273/exception.h>
+#include <k273/util.h>
 
 // ggplib includes
 #include <statemachine/jointmove.h>
@@ -39,8 +40,8 @@ struct ImmediateCaptureResult  {
 };
 
 
-class ImmediateCaptures {
-    private:
+class Board::ImmediateCaptures {
+private:
     enum class Ctx {Enter, Next, KingReturn};
 
     public:
@@ -100,7 +101,7 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////
 
-void ImmediateCaptures::iterator::operator++ () {
+void Board::ImmediateCaptures::iterator::operator++ () {
 
     if (this->ctx == Ctx::Next) {
         this->ddi_iter++;
@@ -223,13 +224,6 @@ Board::Board(const Description* board_desc,
 
 Board::~Board() {
     K273::l_warning("In Board::~Board()");
-}
-
-///////////////////////////////////////////////////////////////////////////////
-// Board interface:
-
-void Board::setSquares(GGPLib::BaseState* bs) {
-    this->squares = (Square*) bs->data;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -456,7 +450,7 @@ int Board::maximalLegals(Role role, Position pos, Piece what, int best_mc) {
 
     if (DEBUG && best_mc > 0) {
         K273::l_verbose("maximalLegals best_mc %d, %d %d %d", best_mc,
-                        to_underlying(role), pos, to_underlying(what));
+                        K273::to_underlying(role), pos, K273::to_underlying(what));
     }
 
     return best_mc;

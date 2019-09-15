@@ -29,29 +29,32 @@ namespace InternationalDraughts {
 
         ~Board();
 
-    public:
-        // most of these should be private access, but access needed for unit testing
-        // XXX maybe should try a different testing framework, like gtest
-
-        void setSquares(GGPLib::BaseState* bs);
-
+    private:
         Square* get(Position pos) {
-            ASSERT(pos >= 1 && pos <= this->board_desc->getNumPositions());
+            //ASSERT(pos >= 1 && pos <= this->board_desc->getNumPositions());
             return this->squares + (pos - 1);
         }
 
         // indexed from 1...
         const Square* get(Position pos) const {
-            ASSERT(pos >= 1 && pos <= this->board_desc->getNumPositions());
+            //ASSERT(pos >= 1 && pos <= this->board_desc->getNumPositions());
             return this->squares + (pos - 1);
         }
 
+        Square* getStepCount() {
+            return this->squares + this->board_desc->getStepCounterIncr();
+        }
+
         Square* getMeta() {
-            return this->squares + this->board_desc->getNumPositions();
+            return this->squares + this->board_desc->getMetaSquareIncr();
         }
 
         const Square* getMeta() const {
-            return this->squares + this->board_desc->getNumPositions();
+            return this->squares + this->board_desc->getMetaSquareIncr();
+        }
+
+        void setSquares(GGPLib::BaseState* bs) {
+            this->squares = (Square*) bs->data;
         }
 
         void clearCaptures();
@@ -72,7 +75,9 @@ namespace InternationalDraughts {
         int score(Role role) const;
 
     private:
+        class ImmediateCaptures;
         friend class SM;
+        friend class ImmediateCaptures;
         const Description* board_desc;
 
         const bool breakthrough_mode;
