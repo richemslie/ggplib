@@ -158,7 +158,6 @@ void Board::ImmediateCaptures::iterator::operator++ () {
                     const Square* sq = this->ic.board->get(next.pos);
 
                     if (!sq->isEmpty()) {
-                        //printf("here7\n");
                         if (sq->isOpponentAndNotCaptured(this->ic.role)) {
 
                             // populate res so far...
@@ -223,11 +222,57 @@ Board::Board(const Description* board_desc,
 }
 
 Board::~Board() {
-    K273::l_warning("In Board::~Board()");
+    if (DEBUG) {
+        K273::l_warning("In Board::~Board()");
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 // These are all private.  Maybe I should factor them out to wrap a basestate... or something.
+
+int Board::getStepCount() const {
+    Square* pt_square = this->squares + this->board_desc->getStepCounterIncr();
+    const int max_count = this->board_desc->getNRuleCount();
+
+    int count = 0;
+    while (true) {
+        int const square_value = pt_square->getValue();
+        if (square_value != 0) {
+            return count + square_value;
+        }
+
+        pt_square++;
+        count += 8;
+
+        ASSERT(count < max_count);
+    }
+
+    return -1;
+}
+
+void Board::incrStepCount(bool reset) {
+    int value = 1;
+    if (!reset) {
+        value = this->getStepCount() + 1;
+    }
+
+    Square* pt_square = this->squares + this->board_desc->getStepCounterIncr();
+    const int max_count = this->board_desc->getNRuleCount();
+
+    int count = 0;
+    while (count < max_count) {
+        if (value > 0 && value <= 8) {
+            pt_square->setValue(value);
+        } else {
+            pt_square->setValue(0);
+        }
+
+        pt_square++;
+        count += 8;
+
+        value -= 8;
+    }
+}
 
 void Board::clearCaptures() {
     Square* sq = this->squares;
@@ -277,8 +322,7 @@ int Board::score(Role role) const {
             return 0;
         }
 
-        // ZZZ don't need to do anything for 40_rule_count
-        // must be a draw then
+        // don't need to do anything for N_rule; it must be a draw then
         return 50;
     };
 
@@ -304,12 +348,9 @@ bool Board::done() const {
         }
 
     } else {
-        // draw conditions XXX (done outside statemachine XXX)
-
-        // ZZZ
-        //if (this->getCounter() == this->board_desc->40_rule_count) {
-        //    return true;
-       // }
+        if (this->getStepCount() >= this->board_desc->getNRuleCount()) {
+            return true;
+        }
     }
 
     return false;
@@ -622,13 +663,12 @@ void Board::playMove(const GGPLib::JointMove* move) {
         }
     }
 
-    // 40 rule - note in intermim status, we dont need to do anything
-    // Square* counter_40r = this->getCounter();
-    // if (rll->what == Piece::Man || captured_pos) {
-    //     counter_40r->reset();
-    // } else {
-    //     counter_40r->incr;
-    // }
+    // n rule - note in intermim status, we dont need to do anything
+    if (rll->what == Piece::Man || captured_pos > 0) {
+        this->incrStepCount(true);
+    } else {
+        this->incrStepCount(false);
+    }
 
     // ensure all captures are removed from board
     this->clearCaptures();

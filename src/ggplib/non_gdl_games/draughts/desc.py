@@ -6,8 +6,6 @@ import string
 
 import colorama
 
-from ggplib.db import lookup
-
 ###############################################################################
 
 colorama.init()
@@ -17,7 +15,8 @@ colorama.init()
 # constants
 ############
 
-MAX_N_RULE_STATES = 0
+MAX_N_RULE_STATES = 32
+N_RULE_COUNT = 10
 
 MAN, KING = 0, 1
 
@@ -131,13 +130,15 @@ class BoardDesc:
                 add("(pad_1 %s %s)" % (j, i))
                 num_positions += 1
 
-        self.draw_20_rule_index = len(bases)
+        self.draw_n_rule_index = len(bases)
+        assert self.draw_n_rule_index % 8 == 0
 
-        # N rule counter
+        # n rule counter
         for i in range(MAX_N_RULE_STATES):
-            add("(20_rule_step_%s)" % i)
+            add("(n_rule_step_%s)" % i)
 
         self.meta_index = len(bases)
+        assert self.meta_index % 8 == 0
 
         # control states
         add("(control white)")
@@ -145,7 +146,13 @@ class BoardDesc:
 
         # set as quick lookup
         add("interim_status")
+        add("(pad_0)")
+        add("(pad_1)")
+        add("(pad_2)")
+        add("(pad_3)")
+        add("(pad_4)")
 
+        assert len(bases) % 8 == 0
         return bases, num_positions
 
     def mapping_from(self, pos):
@@ -281,13 +288,17 @@ class BoardDesc:
     def get_initial_state(self):
         basestate = [0 for i in range(len(self.bases))]
 
+        if N_RULE_COUNT:
+            assert N_RULE_COUNT < MAX_N_RULE_STATES
+
         # set first step
-        basestate[self.draw_20_rule_index] = 1
+        if N_RULE_COUNT:
+            basestate[self.draw_n_rule_index] = 1
 
         # start with control to white
         basestate[self.meta_index] = 1
 
-        # XXX by eyeballing initial boards, I see there are 2 blank rows on games I have seen.  I
+        # by eyeballing initial boards, I see there are 2 blank rows on games I have seen.  I
         # doubt this is correct though.
         starting_men = (self.num_positions - self.squares_per_row * 2) / 2
 
@@ -307,6 +318,13 @@ class BoardDesc:
 
         # fresh basestate
         basestate = [0 for i in range(len(self.bases))]
+
+        if N_RULE_COUNT:
+            assert N_RULE_COUNT < MAX_N_RULE_STATES
+
+        # set first step
+        if N_RULE_COUNT:
+            basestate[self.draw_n_rule_index] = 1
 
         def bs_set_helper(pos, role, what):
             indx = (pos - 1) * NUM_BASES_POS
@@ -393,6 +411,15 @@ class BoardDesc:
             assert bs_get(basestate, indx + 1)
             return BLACK
 
+    def step_counter(self, basestate):
+        indx = self.draw_n_rule_index
+
+        for ii in range(N_RULE_COUNT):
+            if bs_get(basestate, indx + ii):
+                return ii + 1
+
+        return -1
+
     def piece_count(self, basestate, role):
         count = 0
 
@@ -408,7 +435,6 @@ class BoardDesc:
 
     def get_legal_mapping(self, role, legal):
         # XXX ugly hack using gencode - fix to use board_desc only
-        # ZZZ legal_black_index/legal_white_index - should be set in create_legals() in board_desc
         from ggplib.non_gdl_games.draughts import gencode
         legal_black_index = gencode.GenCodeFn(10).legal_black_index
 
@@ -496,6 +522,8 @@ class BoardDesc:
             # alternate spaces between rows
             num_spaces = 0 if num_spaces > 0 else 2
 
+        print("whos turn: %s, step_counter %d" % (role_str(self.whos_turn(basestate)),
+                                                  self.step_counter(basestate)))
         print("")
 
     def print_board_sm(self, sm):
@@ -505,6 +533,7 @@ class BoardDesc:
 ###############################################################################
 
 def create_sm(board_desc, fen, killer_mode=False):
+    from ggplib.db import lookup
     basestate_as_list = board_desc.state_from_fen(fen)
 
     if killer_mode:

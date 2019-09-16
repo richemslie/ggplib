@@ -172,6 +172,39 @@ namespace InternationalDraughts {
         std::string reprSquare() const;
         std::string reprMetaSquare() const;
 
+        int getValue() const {
+            switch (this->data) {
+            case 0:
+                return 0;
+            case 1:
+                return 1;
+            case 2:
+                return 2;
+            case 4:
+                return 3;
+            case 8:
+                return 4;
+            case 16:
+                return 5;
+            case 32:
+                return 6;
+            case 64:
+                return 7;
+            case 128:
+                return 8;
+            default:
+                return -1;
+            }
+        }
+
+        void setValue(int value) {
+            if (value == 0) {
+                this->data = 0;
+            } else {
+                this->data = 1 << (value - 1);
+            }
+        }
+
     private:
         uint8_t data;
     };

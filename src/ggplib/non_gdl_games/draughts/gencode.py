@@ -1,11 +1,12 @@
+from pprint import pprint
 from ggplib.non_gdl_games.draughts import desc
-
+from ggplib.statemachine.model import StateMachineModel
 
 incl_file_header = '''
 
 // local includes
-#include "draughts_desc.h"
-#include "draughts_board.h"
+#include "desc.h"
+#include "board.h"
 
 // k273 includes
 #include <k273/util.h>
@@ -164,10 +165,25 @@ class GenCodeFn:
     def body(self):
         positions = self.board_desc.num_positions
 
+        assert desc.MAX_N_RULE_STATES % 8 == 0
+        step_counter_square_sz = desc.MAX_N_RULE_STATES / 8
+
+        # round up to nearest 8
+        num_bases = 8 * (self.board_desc.num_positions + step_counter_square_sz + 1)
+        step_counter_square_incr = self.board_desc.num_positions
+        meta_square_incr = step_counter_square_incr + step_counter_square_sz
+
         yield "this->num_positions = %d;" % positions
+        yield "this->num_bases = %d;" % num_bases
+        yield "this->step_counter_square_incr = %d;" % step_counter_square_incr
+        yield "this->meta_square_incr = %d;" % meta_square_incr
+
+        yield "this->n_rule_count = %d;" % desc.N_RULE_COUNT
+
         yield "this->white_noop = 0;"
         yield "this->black_noop = 0;"
         yield "this->diagonal_data.resize(%d);" % (positions * 4)
+        yield ""
 
         yield "// Reserve the map size upfront, hopefully memory will be contiguous (XXX check)"
         yield "this->reverse_legal_lookup_white.resize(%d);" % self.num_legals_white
@@ -255,8 +271,40 @@ def create_cpp_file(filename, gens):
         newline(init_file, 1)
 
 
+def create_sm_model(board_desc, breakthrough_mode=False, verbose=False):
+    model = StateMachineModel()
+
+    # add roles
+    model.roles = ['white', 'black']
+
+    # add base states
+    for b in board_desc.bases:
+        model.bases.append("(true %s)" % b)
+
+    if verbose:
+        pprint(model.bases)
+
+    # add legals
+    model.actions = [[], []]
+    for legal in board_desc.all_legals:
+
+        if breakthrough_mode and "king" in legal:
+            continue
+
+        action = legal.replace("legal", "does")
+        if "white" in action:
+            model.actions[0].append(action)
+        else:
+            model.actions[1].append(action)
+
+    if verbose:
+        print len(model.actions[0]), len(model.actions[1])
+        pprint(model.actions)
+
+    return model
+
+
 if __name__ == "__main__":
     board_sizes = 8, 10
     gens = [GenCodeFn(sz) for sz in board_sizes]
-
-    create_cpp_file("../../cpp/draughts_init.cpp", gens)
+    create_cpp_file("../../../cpp/statemachine/external/draughts/init.cpp", gens)

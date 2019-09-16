@@ -9,7 +9,6 @@
 #include <statemachine/basestate.h>
 
 // k273 includes
-#include <k273/logging.h>
 #include <k273/exception.h>
 #include <k273/stacktrace.h>
 
@@ -31,19 +30,16 @@ namespace InternationalDraughts {
 
     private:
         Square* get(Position pos) {
-            //ASSERT(pos >= 1 && pos <= this->board_desc->getNumPositions());
             return this->squares + (pos - 1);
         }
 
         // indexed from 1...
         const Square* get(Position pos) const {
-            //ASSERT(pos >= 1 && pos <= this->board_desc->getNumPositions());
             return this->squares + (pos - 1);
         }
 
-        Square* getStepCount() {
-            return this->squares + this->board_desc->getStepCounterIncr();
-        }
+        int getStepCount() const;
+        void incrStepCount(bool reset);
 
         Square* getMeta() {
             return this->squares + this->board_desc->getMetaSquareIncr();
