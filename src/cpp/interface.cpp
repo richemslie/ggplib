@@ -21,6 +21,10 @@
 #include "statemachine/external/draughts/board.h"
 #include "statemachine/external/draughts/sm.h"
 
+#include "statemachine/external/baduk/desc.h"
+#include "statemachine/external/baduk/board.h"
+#include "statemachine/external/baduk/sm.h"
+
 #include <k273/algo.h>
 #include <k273/json.h>
 #include <k273/logging.h>
@@ -520,4 +524,18 @@ void* getSMDraughtsKiller_10x10() {
 
 void* getSMDraughtsBreakthrough_10x10() {
     return (void *) getSMDraughts(10, true, false);
+}
+
+void* getSMBaduk_9x9() {
+    K273::l_info("in getSMBaduk_9x9()");
+    try {
+        Baduk::Description* desc = new Baduk::Description(9);
+        GGPLib::StateMachineInterface* sm = new Baduk::SM(desc);
+        return (void *) sm;
+
+    } catch (...) {
+        logExceptionWrapper(__PRETTY_FUNCTION__);
+    }
+
+    return nullptr;
 }
