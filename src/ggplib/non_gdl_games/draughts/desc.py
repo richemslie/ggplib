@@ -135,7 +135,7 @@ class BoardDesc:
 
         # n rule counter
         for i in range(MAX_N_RULE_STATES):
-            add("(n_rule_step_%s)" % i)
+            add("(n_rule_step %s)" % i)
 
         self.meta_index = len(bases)
         assert self.meta_index % 8 == 0
@@ -146,11 +146,11 @@ class BoardDesc:
 
         # set as quick lookup
         add("interim_status")
-        add("(pad_0)")
-        add("(pad_1)")
-        add("(pad_2)")
-        add("(pad_3)")
-        add("(pad_4)")
+        add("(meta_pad_0)")
+        add("(meta_pad_1)")
+        add("(meta_pad_2)")
+        add("(meta_pad_3)")
+        add("(meta_pad_4)")
 
         assert len(bases) % 8 == 0
         return bases, num_positions
