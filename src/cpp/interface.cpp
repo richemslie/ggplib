@@ -494,9 +494,9 @@ void* createCombinedStateMachineFromJSON(const char* msg, int size) {
 }
 
 static GGPLib::StateMachineInterface* getSMDraughts(int size, bool breakthrough_mode, bool killer_mode) {
-    K273::l_info("in getSMDraughts size: %d [%s;%s])", size,
-                 breakthrough_mode ? "breakthrough_mode" : "",
-                 killer_mode ? "killer_mode" : "");
+    //K273::l_info("in getSMDraughts size: %d [%s;%s])", size,
+    //             breakthrough_mode ? "breakthrough_mode" : "",
+    //             killer_mode ? "killer_mode" : "");
 
     try {
         ASSERT(!(breakthrough_mode && killer_mode));
