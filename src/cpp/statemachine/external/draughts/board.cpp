@@ -465,6 +465,8 @@ int Board::maximalLegals(Role role, Position pos, Piece what, int best_mc) {
 
         pt_capture->unSetCapture();
 
+        /* killer mode: the king must stop on the first vacant square after the last captured
+           piece, if and only if that piece is also a king. */
         if (this->killer_mode && mc == 0) {
             // we are at last point, check capture_pos was king
             if (!cap.first_after) {
