@@ -20,7 +20,7 @@ void Description::initBoard_8x8() {
     this->num_bases = 296;
     this->step_counter_square_incr = 32;
     this->meta_square_incr = 36;
-    this->n_rule_count = 10;
+    this->n_rule_count = 20;
     this->white_noop = 0;
     this->black_noop = 0;
     this->diagonal_data.resize(128);
@@ -7086,7 +7086,7 @@ void Description::initBoard_10x10() {
     this->num_bases = 440;
     this->step_counter_square_incr = 50;
     this->meta_square_incr = 54;
-    this->n_rule_count = 10;
+    this->n_rule_count = 20;
     this->white_noop = 0;
     this->black_noop = 0;
     this->diagonal_data.resize(200);

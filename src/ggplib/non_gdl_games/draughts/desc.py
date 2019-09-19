@@ -16,7 +16,7 @@ colorama.init()
 ############
 
 MAX_N_RULE_STATES = 32
-N_RULE_COUNT = 10
+N_RULE_COUNT = 20
 
 MAN, KING = 0, 1
 
