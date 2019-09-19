@@ -22,7 +22,7 @@ indent = "    "
 
 
 def newline(f, count=1):
-    for ii in range(count):
+    for _ in range(count):
         print >>f, ""
 
 
@@ -30,7 +30,7 @@ def bool_value_str(v):
     return str(bool(v)).lower()
 
 
-class GenCodeFn:
+class GenCodeFn(object):
     def __init__(self, board_size):
         self.board_desc = desc.BoardDesc(board_size)
 
@@ -40,11 +40,12 @@ class GenCodeFn:
                 if role_str in legal:
                     assert "noop" in legal
                     return i
-            assert False, "WTF?"
+            assert False, "legal_index_start???"
+            return None
 
         def legal_count_start(role_str):
             count = 0
-            for i, legal in enumerate(self.board_desc.all_legals):
+            for _, legal in enumerate(self.board_desc.all_legals):
                 if role_str in legal:
                     count += 1
             return count
@@ -148,7 +149,7 @@ class GenCodeFn:
 
         legal_strs = []
         for legal in self.board_desc.all_legals:
-            # XXX is this right?
+            # is this right?
             action = legal.replace("(legal", "").strip()
             action = action[:-1]
             if role_str in action:
@@ -240,8 +241,8 @@ class GenCodeFn:
                             yield "}"
 
     def fn_decl(self):
-        sz = self.board_desc.size
-        return "void Description::initBoard_%sx%s() {" % (sz, sz)
+        brd_sz = self.board_desc.size
+        return "void Description::initBoard_%sx%s() {" % (brd_sz, brd_sz)
 
 
 def create_cpp_file(filename, gens):
