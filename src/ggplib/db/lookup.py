@@ -221,6 +221,19 @@ def install_draughts(add_game):
         add_game(game_variant, sm_create_meth(), model)
 
 
+def install_hex(add_game):
+    ' load custom c++ statemachine for draughts '
+    from ggplib import interface
+    from ggplib.non_gdl_games.hex.model import create_sm_model
+
+    cpp_statemachines = interface.CppStateMachines()
+
+    for sz in [9, 11, 13, 15, 19]:
+        cpp_sm = cpp_statemachines.get_hex(sz)
+        model = create_sm_model(sz)
+        add_game("hex_lg_%s" % sz, cpp_sm, model)
+
+
 ###############################################################################
 # The API:
 
@@ -244,6 +257,12 @@ def get_database(verbose=True):
 
         except Exception as err:
             log.error("Failed to install draughts: %s" % err)
+
+        try:
+            install_hex(add_game_to_db)
+
+        except Exception as err:
+            log.error("Failed to install hex: %s" % err)
 
     return the_database
 

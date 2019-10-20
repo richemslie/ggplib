@@ -28,12 +28,12 @@ Cell::Cell(int board_size, Role role, int pos) {
 
         // base cases: first column & last column
         if (pos % board_size == 0) {
-            this->update(Cell::WHITE_WEST);
+            this->update(WHITE_WEST);
         }
 
         // Last row
         if (pos % board_size == (board_size - 1)) {
-            this->update(Cell::WHITE_EAST);
+            this->update(WHITE_EAST);
         }
     }
 }

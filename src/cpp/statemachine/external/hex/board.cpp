@@ -61,13 +61,14 @@ void Board::playMove(const GGPLib::JointMove* move) {
             meta->switchTurn();
             return;
         }
+
+        meta->removeSwap();
     }
 
     int pos = this->board_desc->legalToPos(role, legal);
 
     // set the cell
     Cell updated_cell = this->board_desc->getCell(role, pos);
-    this->cell_states[pos] = updated_cell;
 
     // merge
     if (role == Role::Black) {
@@ -81,6 +82,8 @@ void Board::playMove(const GGPLib::JointMove* move) {
             updated_cell.mergeWhite(this->cell_states[neighbour]);
         }
     }
+
+    this->cell_states[pos] = updated_cell;
 
     // is terminal?
     if (updated_cell.blackWins()) {
@@ -112,8 +115,8 @@ void Board::playMove(const GGPLib::JointMove* move) {
 
             for (int neighbour : this->board_desc->getNeighouringPositions(current)) {
 
-                if (this->cell_states[neighbour].unconnected()) {
-
+                Cell& ncell = this->cell_states[neighbour];
+                if (ncell.unconnected(updated_cell)) {
                     // Update the cell before pushing to stack, avoids repeating
                     this->cell_states[neighbour] = updated_cell;
                     this->cells_to_check.push(neighbour);

@@ -2,6 +2,7 @@
 
 // k273 includes
 #include <k273/util.h>
+#include <k273/strutils.h>
 #include <k273/exception.h>
 
 // ggplib includes
@@ -61,43 +62,50 @@ namespace HexGame {
             this->data |= what;
         }
 
-        void mergeBlack(const Cell& other) {
-            this->data |= (other.data & Cell::BLACK_NORTH);
-            this->data |= (other.data & Cell::BLACK_SOUTH);
+        void mergeBlack(const Cell other) {
+            this->data |= (other.data & (Cell::BLACK_NORTH + Cell::BLACK_SOUTH));
         }
 
-        void mergeWhite(const Cell& other) {
-            this->data |= (other.data & Cell::WHITE_WEST);
-            this->data |= (other.data & Cell::WHITE_EAST);
+        void mergeWhite(const Cell other) {
+            this->data |= (other.data & (Cell::WHITE_WEST + Cell::WHITE_EAST));
         }
 
         bool connected() const {
-            return this->data & ALL_CONNECTS;
+            return (this->data & ALL_CONNECTS) > 0;
         }
 
-        bool unconnected() const {
-            return (this->data & ALL_CONNECTS) == 0;
+        bool unconnected(Cell other) const {
+            const uint8_t mask = (BLACK + WHITE) & other.data;
+            return !this->connected() && this->data & mask;
         }
 
         bool operator == (const Cell& other) const {
             return this->data == other.data;
         }
 
-        std::string repr() {
+        std::string repr() const {
             if (this->empty()) {
                 return "empty";
             }
 
             if (this->data & BLACK) {
-                if (this->connected()) {
+                if (this->data & BLACK_NORTH && this->data & BLACK_SOUTH) {
+                    return "B*";
+                } else if (this->data & BLACK_NORTH) {
                     return "B+";
+                } else if (this->data & BLACK_SOUTH) {
+                    return "B-";
                 } else {
                     return "B";
                 }
             } else {
                 ASSERT(this->data & WHITE);
-                if (this->connected()) {
+                if (this->data & WHITE_WEST && this->data & WHITE_EAST) {
+                    return "W*";
+                } else if (this->data & WHITE_WEST) {
                     return "W+";
+                } else if (this->data & WHITE_EAST) {
+                    return "W-";
                 } else {
                     return "W";
                 }
@@ -171,6 +179,14 @@ namespace HexGame {
 
         void removeSwap() {
             this->data &= ~CAN_SWAP;
+        }
+
+        std::string repr() const{
+            return K273::fmtString("turn %s [%s,%s,%s]",
+                                   this->whosTurn() == Role::Black ? "B" : "W",
+                                   this->canSwap() ? "swap" : "",
+                                   this->blackConnected() ? "B" : "",
+                                   this->whiteConnected() ? "W" : "");
         }
 
     private:

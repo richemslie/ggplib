@@ -319,6 +319,12 @@ class CppStateMachines(object):
     def draughts_bt_10x10(self):
         return self._get_draughts("Breakthrough")
 
+    def get_hex(self, sz):
+        roles = ["black", "white"]
+        c_fn = getattr(lib, "getSMHex")
+        c_statemachine = c_fn(sz)
+        return StateMachine(c_statemachine, roles)
+
 
 ###############################################################################
 

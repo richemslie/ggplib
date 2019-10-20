@@ -122,13 +122,9 @@ def main_2(game_name, seconds_to_run):
     log.info("====================================================")
 
 
-###############################################################################
-
-if __name__ == "__main__":
+def main():
     interface.initialise_k273(1, log_name_base="perf_test")
-
-    import ggplib.util.log
-    ggplib.util.log.initialise()
+    log.initialise()
 
     args = sys.argv[1:]
 
@@ -145,3 +141,9 @@ if __name__ == "__main__":
         game_name = args[0]
         seconds_to_run = int(args[1]) if len(args) == 2 else 10
         main_2(game_name, seconds_to_run)
+
+
+###############################################################################
+
+if __name__ == "__main__":
+    main()
