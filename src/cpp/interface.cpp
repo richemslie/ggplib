@@ -25,6 +25,9 @@
 #include "statemachine/external/baduk/board.h"
 #include "statemachine/external/baduk/sm.h"
 
+#include "statemachine/external/hex/desc.h"
+#include "statemachine/external/hex/sm.h"
+
 #include <k273/algo.h>
 #include <k273/json.h>
 #include <k273/logging.h>
@@ -532,6 +535,22 @@ void* getSMBaduk_9x9() {
         Baduk::Description* desc = new Baduk::Description(9);
         GGPLib::StateMachineInterface* sm = new Baduk::SM(desc);
         return (void *) sm;
+
+    } catch (...) {
+        logExceptionWrapper(__PRETTY_FUNCTION__);
+    }
+
+    return nullptr;
+}
+
+void* getSMHex(int size) {
+    K273::l_info("in getSMHex size: %d", size);
+
+    try {
+        HexGame::Description* desc = new HexGame::Description(size, true);
+        GGPLib::StateMachineInterface* sm = new HexGame::SM(desc);
+
+        return sm;
 
     } catch (...) {
         logExceptionWrapper(__PRETTY_FUNCTION__);

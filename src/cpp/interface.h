@@ -113,6 +113,8 @@ extern "C" {
     StateMachine* getSMDraughtsBreakthrough_10x10();
     StateMachine* getSMDraughtsKiller_10x10();
 
+    StateMachine* getSMHex(int sz);
+
     // CFFI END INCLUDE
 
 #ifdef __cplusplus

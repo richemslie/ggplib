@@ -658,7 +658,7 @@ void Board::playMove(const GGPLib::JointMove* move) {
                               this->board_desc->getDiagonalsForPosition(rll->role, rll->to_pos, rll->what));
 
         for (auto x : ici) {
-            x = x;
+            (void) x;
             to_sq->setLast();
             meta->setInterimStatus();
             return;
