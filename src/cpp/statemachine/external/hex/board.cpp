@@ -135,13 +135,15 @@ void Board::moveGen(GGPLib::LegalState* ls_black, GGPLib::LegalState* ls_white) 
     ls_black->clear();
     ls_white->clear();
 
+    const int num_points = this->board_desc->numberPoints();
+
     Role role = meta->whosTurn();
     if (role == Role::Black) {
         // add noop for white
         ls_white->insert(this->board_desc->getNoopLegal());
 
         // add any points that are valid/legal
-        for (int ii=0; ii<this->board_desc->numberPoints(); ii++) {
+        for (int ii=0; ii<num_points; ii++) {
             Cell cur = this->cell_states[ii];
             if (cur.empty()) {
                 ls_black->insert(this->board_desc->blackPosToLegal(ii));
@@ -159,7 +161,7 @@ void Board::moveGen(GGPLib::LegalState* ls_black, GGPLib::LegalState* ls_white) 
         }
 
         // add any points that are valid/legal
-        for (int ii=0; ii<this->board_desc->numberPoints(); ii++) {
+        for (int ii=0; ii<num_points; ii++) {
             Cell cur = this->cell_states[ii];
             if (cur.empty()) {
                 ls_white->insert(this->board_desc->whitePosToLegal(ii));

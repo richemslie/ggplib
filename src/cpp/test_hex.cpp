@@ -268,7 +268,7 @@ int main() {
         throw;
     }
 
-    Description* desc = new Description(9, true);
+    Description* desc = new Description(19, true);
     GGPLib::StateMachineInterface* sm = new SM(desc);
     sm->getInitialState();
 
@@ -317,12 +317,6 @@ int main() {
             depth++;
         }
 
-        Cell* cells = (Cell*) sm->getCurrentState()->data;
-        for (int ii=0; ii<desc->numberPoints(); ii++) {
-            K273::l_debug("%d %s", ii, cells->repr().c_str());
-            cells++;
-        }
-
         // for heating the cpu side effect only
         for (int ii=0; ii<sm->getRoleCount(); ii++) {
             sm->getGoalValue(ii);
@@ -330,9 +324,7 @@ int main() {
 
         rollouts++;
         num_state_changes += depth;
-        ASSERT(false);
     }
 
-    K273::l_debug("rollouts %d, changes %d", rollouts, num_state_changes);
-
+    K273::l_debug("rollouts %d, changes %d", rollouts / seconds_to_run, num_state_changes);
 }

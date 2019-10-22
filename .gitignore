@@ -9,6 +9,7 @@ src/ggplib/props/*
 *.d
 *.o
 *.so
+*.bin
 
 # python
 *.pyc
